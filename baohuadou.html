@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>保卫阿斗 · 三国文字双阵对垒</title>
+<style>
+  :root{ --ink:#2b1d24; --seal:#b23a2e; --gold:#d9ad55; --card:#fbf4e6; --paper:#f6ead2;
+    --deep:#3a2230; --slotH:34px; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0;padding:0}
+  /* 全程禁止选中文字：拖拽卡牌时不会把按钮/牌面文字刷成蓝色高亮 */
+  html,body{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    -webkit-touch-callout:none;-webkit-user-drag:none}
+  ::selection{background:transparent;color:inherit}
+  ::-moz-selection{background:transparent;color:inherit}
+  body{font-family:"KaiTi","STKaiti","Kaiti SC","PingFang SC","Microsoft YaHei",serif;
+    color:var(--ink);display:flex;flex-direction:column;min-height:100svh;
+    background:radial-gradient(circle at 18% -5%,rgba(255,255,255,.5),transparent 46%),
+      radial-gradient(circle at 88% 105%,rgba(120,50,80,.3),transparent 52%),
+      linear-gradient(180deg,#f5e1e1 0%,#e6c2d3 44%,#c69fba 100%);}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:repeating-linear-gradient(0deg,rgba(80,40,60,.022) 0 1px,transparent 1px 3px),
+      repeating-linear-gradient(90deg,rgba(80,40,60,.018) 0 1px,transparent 1px 4px)}
+  .app{position:relative;z-index:1;width:min(540px,100%);margin:auto;padding:5px 7px 9px}
+  /* ---------- 顶栏 ---------- */
+  .topbar{display:flex;align-items:center;gap:7px;margin-bottom:5px;min-height:38px}
+  .pause{width:32px;height:32px;border-radius:50%;flex:0 0 auto;cursor:pointer;
+    background:linear-gradient(160deg,rgba(255,255,255,.75),rgba(255,255,255,.3));
+    border:2px solid rgba(120,70,90,.4);display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:#7a4859;font-family:sans-serif;box-shadow:0 2px 4px rgba(80,40,60,.18)}
+  .stage{font-size:18px;font-weight:800;letter-spacing:2px;color:#7a3b52;line-height:1.05;
+    text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .stage small{display:block;font-size:11px;font-weight:700;letter-spacing:0;color:#9c5f6e;font-family:sans-serif}
+  /* 顶栏小按钮：主界面 / 概率 */
+  .topbtn{flex:0 0 auto;height:26px;padding:0 9px;border-radius:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-family:sans-serif;
+    background:linear-gradient(160deg,rgba(255,255,255,.8),rgba(255,255,255,.34));
+    border:1.5px solid rgba(120,70,90,.42);color:#7a4859;font-size:11.5px;font-weight:800;
+    letter-spacing:.5px;white-space:nowrap;box-shadow:0 2px 4px rgba(80,40,60,.16)}
+  .topbtn:active{transform:translateY(1px);background:rgba(255,255,255,.9)}
+  .topbtn.icon{width:26px;padding:0;font-size:12px;letter-spacing:0}
+  .hudright{margin-left:auto;display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .bun{display:flex;align-items:center;gap:4px;background:linear-gradient(180deg,#4a3630,#2e211f);
+    color:#ffe9bd;border:1px solid #6b4a3c;border-radius:14px;padding:2px 9px 2px 3px;
+    font-size:13px;font-weight:700;font-family:sans-serif;box-shadow:0 2px 5px rgba(50,25,35,.25)}
+  .bun i{width:19px;height:19px;border-radius:50%;display:block;
+    background:radial-gradient(circle at 35% 28%,#fff,#e8d8b0);border:1px solid #c9b287}
+  /* ---------- 双战场 ---------- */
+  .arena{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+    --cell:48px;width:fit-content;margin:0 auto}
+  .side{font-size:11px;letter-spacing:2px;color:#7a4859;font-weight:700;align-self:flex-start;
+    margin-left:2px;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+  .half{position:relative;display:grid;gap:2px;width:fit-content;margin:0 auto;
+    grid-template-columns:repeat(7,var(--cell));grid-template-rows:repeat(5,var(--cell));
+    border:2px solid #5d3345;border-radius:6px;overflow:visible;background:#6d3b4f;
+    box-shadow:0 4px 12px rgba(70,30,50,.32),inset 0 0 0 1px rgba(255,255,255,.14)}
+  .cell{position:relative;width:var(--cell);height:var(--cell);display:flex;align-items:center;
+    justify-content:center;user-select:none;border:1px solid rgba(60,25,40,.3)}
+  .cell.road{background:transparent;border-color:transparent;box-shadow:none}
+  .cell.road::after{display:none}
+  .cell.base{background:radial-gradient(circle at 40% 30%,#fff4da,#e9c893);
+    border:2px solid var(--seal);z-index:3;flex-direction:column;
+    box-shadow:inset 0 0 10px rgba(180,60,45,.35),0 0 12px rgba(255,205,120,.75);
+    animation:basePulse 2.6s ease-in-out infinite}
+  @keyframes basePulse{50%{box-shadow:inset 0 0 10px rgba(180,60,45,.35),0 0 20px rgba(255,205,120,.95)}}
+  /* 「斗」字 + 头上的血量徽章 */
+  .cell.base .bz{font-size:calc(var(--cell)*.46);font-weight:800;line-height:1;color:var(--seal);
+    margin-top:calc(var(--cell)*.13);text-shadow:0 1px 0 #fff}
+  .cell.base .bh{position:absolute;left:50%;top:0;transform:translateX(-50%);
+    min-width:calc(var(--cell)*.46);padding:0 3px;border-radius:9px;line-height:1.3;
+    background:linear-gradient(180deg,#c8433a,#9d2b25);color:#fff5df;
+    font:800 calc(var(--cell)*.19)/1.3 system-ui,sans-serif;letter-spacing:0;
+    border:1px solid rgba(255,222,180,.6);box-shadow:0 1px 3px rgba(60,20,20,.45);z-index:2}
+  .cell.base .bh.low{background:linear-gradient(180deg,#e2604f,#b3271c);
+    animation:hpLow .95s ease-in-out infinite}
+  @keyframes hpLow{50%{box-shadow:0 0 11px rgba(255,110,80,.95),0 1px 3px rgba(60,20,20,.45)}}
+  .cell.tower{cursor:pointer;background:repeating-linear-gradient(135deg,#724255 0 7px,#7c495c 7px 14px)}
+  .cell.tower.unlocked{background:repeating-linear-gradient(135deg,#b87b8d 0 7px,#c78d9e 7px 14px);
+    box-shadow:inset 0 0 0 1px rgba(255,235,225,.35),inset 0 0 12px rgba(255,220,210,.22)}
+  .cell.tower.locked::after{content:'🔒';font-size:calc(var(--cell)*.27);opacity:.62;
+    filter:grayscale(.25) drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+  .cell.tower.over{outline:3px solid #ffd76a;outline-offset:-3px;z-index:4;
+    box-shadow:inset 0 0 14px rgba(255,220,120,.7)}
+  .cell.tower.over.bad{outline-color:#ff7a6a;box-shadow:inset 0 0 14px rgba(255,90,70,.55)}
+  .cell.tower.over.good{outline-color:#8ff0b0;box-shadow:inset 0 0 14px rgba(110,240,160,.55)}
+  .cell.in-range{box-shadow:inset 0 0 0 2px rgba(255,215,106,.6)}
+  .midline{width:100%;height:calc(var(--cell)*.5);position:relative;
+    background:repeating-linear-gradient(90deg,#9aa878 0 8px,#8c9d6b 8px 16px);
+    border-top:2px solid #5d7048;border-bottom:2px solid #5d7048;
+    box-shadow:inset 0 0 8px rgba(40,60,25,.35)}
+  .midline span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:11px;color:#fff;letter-spacing:3px;text-shadow:0 1px 3px rgba(30,50,20,.8);white-space:nowrap}
+  .range-ring{position:absolute;border:2px dashed rgba(255,222,130,.95);border-radius:50%;
+    background:radial-gradient(circle,rgba(255,222,130,.14),rgba(255,222,130,.04) 62%,transparent 78%);
+    box-shadow:0 0 18px rgba(255,205,90,.35),inset 0 0 18px rgba(255,205,90,.16);
+    pointer-events:none;z-index:6;transform:translate(-50%,-50%);animation:ringIn .18s ease-out}
+  .range-ring::before,.range-ring::after{position:absolute;left:50%;top:50%;width:9px;height:9px;
+    border:1px solid rgba(255,230,150,.9);border-radius:50%;transform:translate(-50%,-50%);content:''}
+  .range-ring::after{width:3px;height:3px;background:#fff2c0;border:none}
+  .range-ring>span{position:absolute;left:50%;top:-9px;transform:translate(-50%,-100%);
+    background:rgba(58,34,48,.88);color:#ffe6a8;border-radius:9px;padding:1px 7px;
+    font-size:10px;font-family:sans-serif;font-weight:700;white-space:nowrap}
+  @keyframes ringIn{from{opacity:0;transform:translate(-50%,-50%) scale(.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  /* ---------- 字牌 ---------- */
+  .zi{position:relative;background:linear-gradient(155deg,#fffaf0,var(--paper));
+    color:#241c18;border:1px solid var(--tc,#b9a183);border-radius:4px;
+    display:flex;align-items:center;justify-content:center;font-weight:800;line-height:1;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.62),0 2px 5px rgba(60,30,40,.3);
+    text-shadow:0 1px 0 rgba(255,255,255,.7);overflow:hidden}
+  .zi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:var(--tc,#b9a183);border-radius:3px 0 0 3px;opacity:.85}
+  .zi::after{content:'';position:absolute;inset:2px;pointer-events:none;border-radius:2px;
+    background:repeating-linear-gradient(0deg,rgba(120,80,50,.035) 0 1px,transparent 1px 4px)}
+  .zi .lv{position:absolute;top:1px;right:2px;font-size:calc(var(--cell)*.19);font-weight:700;
+    color:#8a6a4a;font-family:sans-serif;z-index:1}
+  .zi .wk{position:absolute;bottom:1px;left:3px;font-size:calc(var(--cell)*.15);color:#9a7c58;z-index:1}
+  .zi .ic{font-size:1em;z-index:1}
+  .zi .tool{display:flex;align-items:center;justify-content:center;width:100%;height:100%;z-index:1}
+  .tool-svg{width:62%;height:62%;display:block}
+  .hslot.locked .lk-t{display:flex;align-items:center;justify-content:center;gap:2px}
+  .hslot.locked .lk-t .tool-svg{width:18px;height:18px}
+  .zi.frag{background:linear-gradient(155deg,#f6ecff,#ddc9f4);border-color:#a98ad0;color:#4b2c70}
+  .zi.frag::before{background:#a98ad0}
+  .zi.general{background:linear-gradient(155deg,#fff6cf,#f0cf76);border:2px solid #d9a52a;color:#6a3d0b;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.6),0 0 12px rgba(230,175,50,.65)}
+  .zi.general::before{background:#d9a52a}
+  .zi.shovel{background:linear-gradient(155deg,#e8f0f4,#bfd2da);border-color:#61808e;color:#2b4854}
+  .zi.shovel::before{background:#61808e}
+  .zi.token{background:linear-gradient(155deg,#ffe9d7,#e8b98f);border-color:var(--seal);color:#7d2a20}
+  .zi.token::before{background:var(--seal)}
+  .unit.frag.gen-on{box-shadow:0 0 0 2px #ffd76a,0 0 16px rgba(255,206,77,.9);border-color:#ffd76a;
+    background:linear-gradient(155deg,#fff7d6,#ffe39a);color:#6a3d0b}
+  .unit.frag.gen-on .wk{color:#a8741e;font-weight:700}
+  .zi.lv3{box-shadow:inset 0 0 0 2px rgba(255,255,255,.62),0 0 0 2px rgba(92,150,220,.55),0 2px 6px rgba(60,30,40,.3)}
+  .zi.lv4{box-shadow:inset 0 0 0 2px rgba(255,255,255,.62),0 0 0 2px rgba(160,100,215,.65),0 0 10px rgba(160,100,215,.5)}
+  .zi.lv5{box-shadow:inset 0 0 0 2px rgba(255,255,255,.62),0 0 0 2px #d9a52a,0 0 14px rgba(240,190,60,.8)}
+  .unit{position:absolute;transform:translate(-50%,-50%);z-index:5;cursor:grab;touch-action:none;
+    height:calc(var(--cell) - 5px);font-size:calc(var(--cell)*.46)}
+  .unit.w2{font-size:calc(var(--cell)*.54)}
+  .unit.w3{font-size:calc(var(--cell)*.46)}
+  /* 按下武将时的「分解预览」：整体临时拆成 N 个独立的字格，被按住的那个抬起高亮 */
+  .unit.split{background:none;border-color:transparent;box-shadow:none;gap:3px;padding:2px;
+    overflow:visible;cursor:grabbing}
+  .unit.split::before,.unit.split::after{display:none}
+  .unit.split>span.c{position:relative;flex:1 1 0;min-width:0;height:100%;display:flex;
+    align-items:center;justify-content:center;border:2px solid #d9a52a;border-radius:5px;
+    background:linear-gradient(155deg,#fff6cf,#f0cf76);color:#6a3d0b;font-weight:800;
+    box-shadow:0 2px 5px rgba(60,30,40,.28);transition:transform .09s ease,box-shadow .09s ease}
+  .unit.split>span.c.hl{transform:translateY(-4px) scale(1.06);z-index:2;border-color:#ffb03a;
+    box-shadow:0 8px 18px rgba(60,30,40,.42),0 0 0 2px rgba(255,215,106,.95),0 0 16px rgba(255,196,80,.8)}
+  .unit.split>span.c>.lv{position:absolute;top:0;right:2px;font-size:calc(var(--cell)*.17)}
+  .foe{position:absolute;transform:translate(-50%,-50%);z-index:7;pointer-events:none;
+    width:calc(var(--cell)*.52);height:calc(var(--cell)*.52);display:flex;align-items:center;justify-content:center;
+    animation:foeBob 1.05s ease-in-out infinite}
+  @keyframes foeBob{0%,100%{transform:translate(-50%,-50%) translateY(0) rotate(-1deg)}
+    50%{transform:translate(-50%,-50%) translateY(-3px) rotate(1deg)}}
+  .foe.boss{width:calc(var(--cell)*.68);height:calc(var(--cell)*.68);animation-duration:.85s}
+  /* ---------- 攻击特效 ---------- */
+  .fx{position:absolute;pointer-events:none;z-index:8;will-change:transform,opacity}
+  .fx-line{height:3px;transform-origin:0 50%;border-radius:2px;
+    background:linear-gradient(90deg,rgba(255,240,180,.98),rgba(255,190,90,0));
+    box-shadow:0 0 7px rgba(255,210,120,.85)}
+  .fx-blade{height:6px;transform-origin:0 50%;border-radius:4px;
+    background:linear-gradient(90deg,#fff,#ffe9b0 55%,transparent);box-shadow:0 0 10px #fff}
+  .fx-cut{width:36px;height:3px;background:#fff;border-radius:2px;box-shadow:0 0 10px #fff}
+  .fx-arrow{width:22px;height:11px;background:#e8c27a;
+    clip-path:polygon(0 35%,62% 35%,62% 10%,100% 50%,62% 90%,62% 65%,0 65%)}
+  .fx-charge{font-size:19px;font-weight:800;color:#ffd28a;white-space:nowrap;
+    text-shadow:0 0 10px #e07a2b,0 0 20px #e07a2b}
+  .fx-shield{border:3px solid rgba(130,205,255,.9);border-radius:50%;
+    background:radial-gradient(circle,rgba(130,205,255,.2),transparent 72%);
+    box-shadow:0 0 12px rgba(120,200,255,.6)}
+  .fx-javelin{width:28px;height:3px;border-radius:2px;
+    background:linear-gradient(90deg,#c9a6e8,#fff);box-shadow:0 0 7px #b07ad8}
+  .fx-hit{width:22px;height:22px;border-radius:50%;
+    background:radial-gradient(circle,#fff,rgba(255,220,150,.7) 35%,transparent 72%)}
+  .fx-spark{width:5px;height:5px;border-radius:50%;background:#ffd76a;box-shadow:0 0 7px #ffb43c}
+  .fx-rune{border:3px solid rgba(160,195,255,.95);border-radius:50%;
+    box-shadow:0 0 16px rgba(120,170,255,.85),inset 0 0 16px rgba(120,170,255,.45)}
+  .fx-wave{border:3px solid rgba(255,110,90,.9);border-radius:50%;
+    background:radial-gradient(circle,rgba(255,110,90,.22),transparent 72%)}
+  .fx-mote{width:6px;height:6px;border-radius:50%;background:#ffe39a;box-shadow:0 0 8px #ffd06a}
+  .fx-nova{border:3px solid rgba(255,150,210,.9);border-radius:50%;
+    background:radial-gradient(circle,rgba(255,150,210,.22),transparent 72%);
+    box-shadow:0 0 16px rgba(255,140,200,.7)}
+  .fx-guan{width:66px;height:9px;border-radius:5px;
+    background:linear-gradient(90deg,transparent,#9fe0a0,#fff,#9fe0a0,transparent);
+    box-shadow:0 0 14px #6fd08a}
+  .half.shake{animation:halfShake .24s ease-out}
+  @keyframes halfShake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+  /* ---------- 底部操作区 ---------- */
+  .dock{margin-top:6px;display:flex;align-items:stretch;gap:5px}
+  .hand-wrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .hand-row{display:flex;gap:4px;flex:1;min-width:0}
+  .hslot{flex:1;min-width:0;height:var(--slotH);border-radius:5px;position:relative;
+    display:flex;align-items:center;justify-content:center;touch-action:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,.16));
+    border:1px solid rgba(120,70,90,.38);box-shadow:inset 0 1px 3px rgba(80,40,60,.12)}
+  .hslot .zi{width:100%;height:100%;font-size:clamp(15px,calc(var(--cell)*.46),26px);cursor:grab;
+    animation:cardIn .22s ease-out}
+  @keyframes cardIn{from{opacity:0;transform:scale(.7) translateY(6px)}to{opacity:1;transform:none}}
+  .hslot .discard{position:absolute;top:-6px;right:-5px;width:17px;height:17px;border-radius:50%;
+    background:linear-gradient(160deg,#d95242,#9b2b20);color:#fff;border:2px solid #fff;
+    font-size:10px;line-height:13px;text-align:center;font-family:sans-serif;font-weight:800;
+    cursor:pointer;z-index:9;box-shadow:0 2px 4px rgba(0,0,0,.35)}
+  .hslot.locked{background:repeating-linear-gradient(135deg,#5b2f43 0 6px,#66374c 6px 12px);
+    border-color:#3d1c2c;box-shadow:inset 0 0 8px rgba(20,8,16,.5);cursor:pointer;
+    flex-direction:column;gap:0;color:#e7c9a5}
+  .hslot.locked .lk{font-size:13px;line-height:1;opacity:.8}
+  .hslot.locked .lk-t{font-size:9px;font-family:sans-serif;font-weight:700;opacity:.75;letter-spacing:1px}
+  .hslot.over{outline:3px solid #ffd76a;outline-offset:-2px}
+  .hslot.over.bad{outline-color:#ff7a6a}
+  .hslot.over.good{outline-color:#8ff0b0;box-shadow:inset 0 0 10px rgba(120,255,170,.5)}
+  .camp{width:44px;min-width:44px;align-self:stretch;border-radius:7px 7px 4px 4px;
+    background:linear-gradient(180deg,#8a5741,#4d2d23);color:#ffe9c0;border:2px solid #402218;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:19px;
+    font-weight:800;position:relative;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,220,170,.35),0 2px 5px rgba(50,25,20,.3);text-shadow:0 1px 2px #3a1e16}
+  .camp small{font-size:9px;font-weight:600;color:#e8c9a0;font-family:sans-serif;text-shadow:none}
+  .camp.drop{outline:3px solid #ffd76a;outline-offset:2px;box-shadow:0 0 16px rgba(255,215,106,.7)}
+  .recruit{width:96px;min-width:96px;align-self:stretch;border-radius:9px;border:2px solid #2c201c;
+    background:linear-gradient(180deg,#6b5c4f,#392f29);color:#fff8e6;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-size:18px;font-weight:800;letter-spacing:2px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 3px 0 rgba(0,0,0,.28);text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .recruit:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+  .recruit small{font-size:10px;font-weight:700;letter-spacing:0;opacity:.92;font-family:sans-serif;text-shadow:none}
+  .recruit i{display:inline-block;width:10px;height:10px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#e8d8b0);vertical-align:-1px;margin-right:3px}
+  .recruit em{font-style:normal;font-size:10px;letter-spacing:0;color:#ffd98a;font-family:sans-serif}
+  .orbs{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:0 4px}
+  .orb{width:46px;height:46px;border-radius:50%;border:3px solid #c8892e;cursor:pointer;
+    background:radial-gradient(circle at 35% 28%,#ffd77a,#e09a26);color:#5a3208;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:15px;font-weight:800;box-shadow:0 3px 7px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.5)}
+  .orb small{font-size:9px;font-family:sans-serif;font-weight:700;white-space:nowrap}
+  .orb.mid{background:radial-gradient(circle at 35% 28%,#f3e2f2,#c49ac0);border-color:#9a7098;color:#5a3058}
+  .orb.right{background:radial-gradient(circle at 35% 28%,#eee4d0,#b6a080);border-color:#8a6a48;font-size:13px;color:#4a3626}
+  /* ---------- 提示 / 弹窗 ---------- */
+  .toast{position:fixed;left:50%;top:var(--toastTop,66px);transform:translateX(-50%);z-index:70;
+    width:max-content;max-width:92vw;
+    background:rgba(48,28,40,.92);color:#fff5df;padding:8px 15px;border-radius:20px;
+    font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;text-align:center;
+    border:1px solid rgba(255,215,130,.35);box-shadow:0 4px 14px rgba(40,20,30,.35);backdrop-filter:blur(4px)}
+  .toast.show{opacity:1}
+  .overlay{position:fixed;inset:0;background:rgba(28,14,24,.66);display:flex;align-items:center;
+    justify-content:center;z-index:80;padding:16px;backdrop-filter:blur(3px)}
+  .panel{background:linear-gradient(170deg,#fbf1de,#f0dfc4);border:3px solid var(--seal);border-radius:18px;
+    padding:19px;width:min(420px,100%);text-align:center;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+  .panel h2{margin:0 0 6px;color:var(--seal);font-size:22px;letter-spacing:1px}
+  .panel p{margin:6px 0;color:#60434a;font-size:13px;white-space:pre-line;line-height:1.6;text-align:left}
+  .panel .row{display:flex;gap:10px;margin-top:15px}
+  .btn{appearance:none;border:1px solid #8a6a48;background:#fff8ea;color:var(--ink);
+    border-radius:10px;padding:9px 13px;font-size:15px;font-weight:700;cursor:pointer;flex:1}
+  .btn.primary{background:linear-gradient(180deg,#c34a3a,#9b2b20);color:#fff;border-color:#8f2c22}
+  .rules{margin-top:6px;background:rgba(255,255,255,.42);border:1px solid rgba(120,70,90,.3);
+    border-radius:10px;padding:6px 9px;font-size:12px;color:#6b4b4f;line-height:1.5}
+  .rules summary{cursor:pointer;font-weight:700;color:#7a3b52}
+  @media (max-width:560px){
+    :root{--slotH:28px}
+    .app{padding:3px 5px 5px;width:calc(100% - 6px)}
+    .topbar{gap:5px;margin-bottom:3px;min-height:32px}
+    .pause{width:28px;height:28px;font-size:12px}
+    .topbtn{height:24px;padding:0 7px;font-size:11px}
+    .topbtn.icon{width:24px;font-size:11px}
+    .stage{font-size:15px;letter-spacing:1px}.stage small{font-size:9.5px}
+    .bun{font-size:12px;padding:1px 7px 1px 2px}
+    .bun i{width:16px;height:16px}
+    /* 手机端一屏：藏掉两条「阵地」小字、压扁交战线 */
+    .arena > .side{display:none}
+    .midline{height:calc(var(--cell)*.34)}
+    .midline span{font-size:9px;letter-spacing:1.5px}
+    .dock{gap:4px;margin-top:4px}
+    .camp{width:34px;min-width:34px;font-size:16px}
+    .recruit{width:74px;min-width:74px;font-size:15px}
+    .hslot .zi{font-size:clamp(14px,calc(var(--cell)*.44),22px)}
+    .orbs{margin-top:4px;padding:0 2px}
+    .orb{width:38px;height:38px;font-size:13px;border-width:2px}
+    .orb.right{font-size:11px}
+    .orb small{font-size:8.5px}
+    .rules{display:none}
+  }
+  /* ---------- 连续山路（SVG，连成一体） ---------- */
+  .road-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+  .road-stroke{fill:none;stroke:#6e4f2c;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}
+  .road-fill{fill:none;stroke:#dcbb88;stroke-width:.78;stroke-linecap:round;stroke-linejoin:round;
+    filter:drop-shadow(0 1px 1px rgba(60,35,15,.35))}
+  .road-dash{fill:none;stroke:rgba(255,247,224,.55);stroke-width:.05;stroke-dasharray:.1 .22;stroke-linecap:round}
+  /* ---------- 敌人模型：上半场「卒」、下半场「兵」（文字模型） ---------- */
+  .foe .mon{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+  .foe .monz{font-weight:900;line-height:1;font-size:calc(var(--cell)*.34);
+    color:#33202a;letter-spacing:0;
+    text-shadow:0 0 2px #fff8e8,0 0 3px #fff8e8,0 0 8px var(--mc,#c0536e),0 2px 3px rgba(40,15,25,.45)}
+  .foe.boss .monz{font-size:calc(var(--cell)*.48);color:#4a1f16;
+    text-shadow:0 0 3px #fff2d0,0 0 8px #ffb45a,0 0 14px rgba(255,170,70,.9),0 2px 4px rgba(40,15,25,.5)}
+  .foe .fhp{position:absolute;top:-7px;left:10%;right:10%;height:3px;background:rgba(0,0,0,.45);
+    border-radius:2px;overflow:hidden;opacity:0;transition:opacity .16s}
+  .foe.hurt .fhp{opacity:1}   /* 满血不显示血条，密集兵流才不糊 */
+  .foe .fhp>i{display:block;height:100%;background:linear-gradient(90deg,#ff8a6a,#e2604f);width:100%}
+  .foe.t0{--mc:#d56a8a} .foe.t1{--mc:#8a6ad0} .foe.t2{--mc:#5fc08a} .foe.t3{--mc:#d8b24a} .foe.t4{--mc:#d2604a}
+  .foe.boss .mon::before{content:'';position:absolute;inset:-3px;border-radius:50%;
+    border:2px solid rgba(255,180,90,.7);box-shadow:0 0 16px rgba(255,170,70,.7)}
+  /* 掉血数字：默认（上半场/AI）浮在血条上方，命中即冒出一个，自动上飘淡出 */
+  .foe .dmg-num{position:absolute;left:50%;top:-9px;transform:translate(-50%,-100%);z-index:20;pointer-events:none;
+    font:800 calc(var(--cell)*.3)/1 system-ui,sans-serif;color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 5px rgba(255,90,60,.85);animation:dnum .72s ease-out forwards}
+  .foe.boss .dmg-num{font-size:calc(var(--cell)*.42);color:#ffe08a}
+  @keyframes dnum{0%{opacity:0;transform:translate(-50%,-55%) scale(.6)}
+    16%{opacity:1;transform:translate(-50%,-115%) scale(1.18)}
+    100%{opacity:0;transform:translate(-50%,-235%) scale(1)}}
+  /* 下半场（我方）：数字向下飘，避开交战线遮挡；配合 .half 溢出可见，整条战场都能看到 */
+  #halfMe .foe .dmg-num{top:auto;bottom:-9px;transform:translate(-50%,100%);animation:dnumDown .72s ease-out forwards}
+  @keyframes dnumDown{0%{opacity:0;transform:translate(-50%,55%) scale(.6)}
+    16%{opacity:1;transform:translate(-50%,115%) scale(1.18)}
+    100%{opacity:0;transform:translate(-50%,235%) scale(1)}}
+  /* ---------- 攻击特效（刀枪弓骑实感化） ---------- */
+  .fx-slash{width:56px;height:56px;border:8px solid #fff;border-color:#fff transparent transparent transparent;
+    border-radius:50%;background:none;box-shadow:none;filter:drop-shadow(0 0 7px rgba(255,255,255,.9))}
+  .fx-swing{width:62px;height:62px;border:9px solid #fff;border-color:transparent transparent #fff transparent;
+    border-radius:50%;background:none;box-shadow:none;filter:drop-shadow(0 0 8px rgba(255,255,255,.92))}
+  .fx-thrust{height:5px;transform-origin:0 50%;border-radius:3px;background:linear-gradient(90deg,#fff,#ffe9b0);
+    box-shadow:0 0 10px #fff}
+  .fx-thrust::after{content:'';position:absolute;right:-3px;top:50%;transform:translateY(-50%);
+    border-left:13px solid #fff;border-top:8px solid transparent;border-bottom:8px solid transparent;
+    filter:drop-shadow(0 0 6px #fff)}
+  .fx-arrow2{width:32px;height:14px;background:linear-gradient(90deg,#caa15a,#f3dba2);
+    clip-path:polygon(0 38%,68% 38%,68% 6%,100% 50%,68% 94%,68% 62%,0 62%);
+    filter:drop-shadow(0 0 5px rgba(255,220,150,.85))}
+  .fx-bow{width:26px;height:32px;border:3px solid rgba(255,230,160,.92);
+    border-color:rgba(255,230,160,.92) transparent transparent transparent;border-radius:50%;background:none;
+    filter:drop-shadow(0 0 7px rgba(255,220,140,.85))}
+  .fx-dust{width:7px;height:7px;border-radius:50%;background:rgba(225,205,170,.7);
+    box-shadow:0 0 7px rgba(220,200,170,.6)}
+  /* ---------- 武将概率表 ---------- */
+  .prob-modal{position:fixed;inset:0;z-index:85;background:rgba(28,14,24,.6);display:flex;
+    align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+  .prob-panel{background:linear-gradient(170deg,#fbf1de,#f0dfc4);border:3px solid var(--seal);border-radius:16px;
+    padding:16px;width:min(430px,100%);box-shadow:0 14px 44px rgba(0,0,0,.45);max-height:86vh;overflow:auto}
+  .prob-panel h3{margin:0 0 3px;color:var(--seal);font-size:18px}
+  .prob-panel .note{font-size:11px;color:#7a5560;margin:0 0 9px;line-height:1.5}
+  .prob-panel table{width:100%;border-collapse:collapse;font-size:12px;color:#5a3b44}
+  .prob-panel th,.prob-panel td{border:1px solid rgba(150,90,110,.35);padding:6px 4px;text-align:center}
+  .prob-panel th{background:rgba(180,60,45,.12);color:var(--seal)}
+  .prob-panel .gname{font-weight:800;color:#6a3d0b}
+  .prob-panel .pct{font-weight:800;color:#9b2b20}
+  .prob-panel tr.row-off td{opacity:.42}
+  .prob-panel tr.row-off td.pct{color:#7a5560;font-weight:600}
+  .prob-panel .close{margin-top:12px;width:100%;border:1px solid #8a6a48;background:#fff8ea;color:var(--ink);
+    border-radius:10px;padding:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:sans-serif}
+  /* ---------- 主界面 ---------- */
+  .home{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;
+    padding:24px 18px 10vh;overflow:auto;
+    background:radial-gradient(circle at 18% -4%,rgba(255,255,255,.6),transparent 46%),
+      radial-gradient(circle at 86% 104%,rgba(120,50,80,.34),transparent 54%),
+      linear-gradient(180deg,#f8e8e5 0%,#e6c2d3 46%,#bf94b2 100%)}
+  .home::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background-image:repeating-linear-gradient(0deg,rgba(80,40,60,.022) 0 1px,transparent 1px 3px),
+      repeating-linear-gradient(90deg,rgba(80,40,60,.018) 0 1px,transparent 1px 4px)}
+  .home-card{position:relative;z-index:1;width:min(400px,100%);text-align:center}
+  /* 主界面右上角的喇叭：进游戏前也能先静音 */
+  .home-snd{position:absolute;top:14px;right:14px;z-index:3;width:34px;height:34px;border-radius:50%;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
+    font-family:sans-serif;padding:0;
+    background:linear-gradient(160deg,rgba(255,255,255,.82),rgba(255,255,255,.38));
+    border:1.5px solid rgba(120,70,90,.42);color:#7a4859;
+    box-shadow:0 2px 5px rgba(80,40,60,.18)}
+  .home-snd:active{transform:translateY(1px)}
+  .home-title{margin:0;font-size:clamp(40px,13vw,58px);font-weight:900;letter-spacing:.14em;
+    color:#a82f22;line-height:1.16;text-indent:.14em;
+    text-shadow:0 2px 0 #f9e9cb,0 7px 18px rgba(120,40,40,.32)}
+  .home-sub{margin:9px 0 0;font-size:12px;font-weight:800;color:#7d4a5a;letter-spacing:.22em}
+  .home-start{display:block;width:100%;margin:30px 0 0;padding:15px 0;border-radius:14px;
+    border:2px solid #7d2018;cursor:pointer;font-family:inherit;
+    font-size:22px;font-weight:900;letter-spacing:.2em;color:#fff6e2;text-indent:.2em;
+    background:linear-gradient(180deg,#c9483a,#9b2b20);
+    box-shadow:0 6px 0 #7a2018,0 14px 26px rgba(110,30,25,.38)}
+  .home-start:active{transform:translateY(3px);box-shadow:0 3px 0 #7a2018,0 7px 14px rgba(110,30,25,.38)}
+  .home-level{margin:13px 0 0;font-size:13px;font-weight:800;color:#6d3346;letter-spacing:.1em}
+  .home-tips{list-style:none;margin:22px 0 0;padding:13px 15px;text-align:left;
+    border:1px solid rgba(120,70,90,.34);border-radius:12px;background:rgba(255,255,255,.74);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    font-size:13px;line-height:1.95;color:#472c35}
+  .home-tips li{position:relative;padding-left:14px}
+  .home-tips li::before{content:'◆';position:absolute;left:0;top:0;font-size:8px;color:var(--seal);
+    line-height:2.6}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="pause" id="pauseBtn">❚❚</div>
+    <button class="topbtn" id="gameHome">主界面</button>
+    <div class="stage">保卫阿斗<small id="waveText">第 0 / 20 波</small></div>
+    <div class="hudright">
+      <div class="bun"><i></i><b id="mantou">0</b></div>
+      <button class="topbtn icon" id="sndBtn" title="声音开（点一下静音）">🔊</button>
+      <button class="topbtn icon" id="probBtn" title="武将碎片概率">📊</button>
+    </div>
+  </div>
+
+  <div class="arena" id="arena">
+    <div class="side">对手阵地（AI 自动布防）</div>
+    <div class="half" id="halfAI"></div>
+    <div class="midline"><span>交 战 线 · 各 防 各 的</span></div>
+    <div class="half" id="halfMe"></div>
+    <div class="side" style="align-self:flex-end;margin-right:2px">我的阵地</div>
+    <div class="range-ring" id="rangeRing" hidden><span id="rangeLabel">射程</span></div>
+  </div>
+
+  <div class="dock">
+    <button class="recruit" id="recruitBtn">征兵<small><i></i><span id="costText">9</span> · 3 张</small><em>一次三张</em></button>
+    <div class="hand-wrap" id="hand">
+      <div class="hand-row" id="handRow0"></div>
+      <div class="hand-row" id="handRow1"></div>
+    </div>
+    <div class="camp" id="camp">营<small>拖此丢弃</small></div>
+  </div>
+
+  <div class="orbs">
+    <div class="orb" id="orbShovel">🪏<small id="shovelText">0 张</small></div>
+    <div class="orb mid" id="orbSlots">🀄<small id="slotText">6/12 格</small></div>
+    <div class="orb right" id="orbReset">重开<small>本局</small></div>
+  </div>
+
+  <details class="rules">
+    <summary>怎么玩（点开）</summary>
+    <p><b>两个玩家各防各的</b>：上半是对手（AI 自动征兵布阵），下半是你。两边各有<b>一条蜿蜒山路</b>通向自己的「斗」，各自刷怪、各自掉血，怪不会穿过交战线。</p>
+    <p><b>波次不等清场</b>：每 <b>18 秒</b>就开下一波，<b>不等上一波打完</b>——打得慢就会<b>多波小兵叠加</b>在场上，越拖越难；也绝不会出现「我这边打完了还得干等对手」的情况。每波开场双方各 <b>+5 馒头</b>。</p>
+    <p><b>比谁先失守</b>：谁先掉光血量谁输——<b>比的就是谁能晚死一步</b>；如果都活到 20 波，就比剩余血量，<b>血量相同则双方都算过关（没有平局）</b>。<b>你这边 20 波小兵一清完（或你的「斗」一破）就立刻结算</b>，不用等对手那边打完。</p>
+    <p><b>征兵一次三张</b>：花 <b>9 馒头</b> 一次抽 3 张字牌，<b>手牌空余需 ≥3 格才能征兵</b>（不足 3 格则无法征兵，先丢弃/移走一些字牌，或用「令」开新格）。抽卡有概率出 <b>「铲」</b> 和 <b>「令」</b> 两种道具字牌。</p>
+    <p><b>「铲」开格子</b>：把铲字牌拖到棋盘上带 🔒 的深色格子即可解锁（也可直接点 🔒 自动消耗手里第一张铲）。<b>铲不再按波次自动发放</b>，和兵种 / 碎片 / 令一样，<b>只在征兵时按概率抽到</b>；<b>每局铲的总数是随机的</b>（不一定够把格子全开完），用完就不再刷出。</p>
+    <p><b>「令」开手牌</b>：下面第二排是锁着的手牌格，<b>双击</b>手牌里的「令」字牌即可自动解锁一个手牌格（也可拖到锁格 / 点锁格）。<b>每局令的总数也是随机的</b>，不一定能把 12 格全开。</p>
+    <p><b>部署 / 合成 / 召唤</b>：字牌拖到路周边已解锁的格子；相同字同等级拖一起升 1 级（最高 5）。<b>名字碎片可单个放上战场，但单独没有战斗功能</b>；<b>同武将·同字·同等级的碎片拖到一起也会升 1 级</b>（手里重复的字可这样消化，不必先凑成武将，最高 5 级）；把名字的<b>各字按「从左到右」的顺序紧挨排成一行</b>（如「赵」「云」，或三字「诸」「葛」「亮」），就会自动<b>合并成一个整体武将</b>、占满整行格子、拥有强力攻击特效与各自不同的射程 / 频率 / 伤害，右上角显示<b>武将等级</b>。<b>按住武将时它会临时分解成单独的字给你看清每一格（松手即恢复整体）</b>，这时<b>按住哪个字就能把哪个字拖出</b>（拖到空格/手牌即移走、拖到「营」即撤下），<b>没拖到的字保留在场上</b>；拆下的字<b>保留武将原等级</b>，重新拼回仍按该等级合体。武将可升级：场上已成武将，再拖来它名字中<b>任意一个字</b>（不必全名）即升 1 级。<b>场上两张牌拖动到一起会互换位置</b>（同兵种同等级则合成升级；<b>兵种拖到武将上＝和指针指着的那一个字换位</b>，武将不会整张换过去）；<b>拖武将时只会动你按住的那一个字</b>：拖到空格＝把这个字挪走，拖到同武将的另一个字上＝两个字换位（顺序反了就不再是武将，自然散成单字），拖到别的牌上＝这个字和那张牌换位（拖到另一个武将上也只换你指着的那一个字），整张武将不会被一起拖走。<b>手牌拖到已有字牌的格子、或把场上已有的牌拖到手牌格，都会直接换防</b>（两张牌位置对调，旧牌自动回到手牌）。<b>同名武将场上只能有一个</b>：已经合出「赵云」之后，再凑齐一套「赵云」也不会再合体（会散成单字留在场上），多出来的字只能拖到已有武将上升级、或拖到「营」丢掉；黄忠与黄月英共用「黄」，但两将是<b>不同的武将</b>，可以各自在场。</p>
+    <p><b>兵种攻击</b>：<b>刀</b>范围最小、只打单体；<b>骑</b>范围略大于刀、范围伤害；<b>枪</b>范围更大、沿直线贯穿（一条线上多个敌人全额伤害）；<b>弓</b>范围最大、只打单体。拖动字牌时落点会显示攻击范围圈，每个兵种都有各自的攻击特效与动作。</p>
+    <p><b>丢弃</b>：把牌拖到「营」丢弃，返还 1 馒头（手牌满了一定要用）。</p>
+  </details>
+</div>
+
+<div class="prob-modal" id="probModal" hidden>
+  <div class="prob-panel">
+    <h3>武将名字碎片 · 可获得概率</h3>
+    <p class="note">每次「征兵」抽 3 张字牌。<b>每个字在整个武将名字池里等概率</b>（黄忠 / 黄月英共用的「黄」按一份计，一个黄两用），所以两字将各占 2 份、三字将各占 3 份。<b>某位武将升到满级后，它的字就不再刷出</b>（「黄」要黄忠、黄月英都满级才停），池子变小、剩下的字按新的占比重算——下表是<b>当前这一局</b>的实时概率。铲 / 令为限量道具，每局总数随机。</p>
+    <table id="probTable"></table>
+    <button class="close" id="probClose">知道了</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 主界面 -->
+<div class="home" id="home">
+  <button class="home-snd" id="homeSnd" title="声音开（点一下静音）">🔊</button>
+  <div class="home-card">
+    <h1 class="home-title">保卫阿斗</h1>
+    <p class="home-sub">三 国 文 字 · 双 阵 对 垒</p>
+    <button class="home-start" id="homeStart">开始游戏</button>
+    <p class="home-level" id="homeLevel">第 1 关</p>
+    <ul class="home-tips">
+      <li>征兵抽字牌，拖到山路旁的格子上布防</li>
+      <li>相同字、相同等级拖到一起，升一级</li>
+      <li>把「赵」「云」按顺序排成一行，合成武将</li>
+      <li>守住自己的「斗」，20 波内别被攻破</li>
+    </ul>
+  </div>
+</div>
+<div class="overlay" id="overlay" hidden>
+  <div class="panel">
+    <h2 id="ovTitle">结算</h2>
+    <p id="ovText"></p>
+    <div class="row">
+      <button class="btn primary" id="ovMain">开始游戏</button>
+      <button class="btn" id="ovAgain">重开</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================ 题材配置 ============================ */
+const THEME = {
+  baseChar:'斗',
+  // atk: 'single'(单体) | 'aoe'(范围) | 'line'(直线贯穿)
+  soldiers:[
+    {key:'刀',dmg:12, cd:0.80,range:1.4, atk:'single'},
+    {key:'骑',dmg:18, cd:1.10,range:1.9, atk:'aoe'},
+    {key:'枪',dmg:14, cd:0.95,range:2.7, atk:'line'},
+    {key:'弓',dmg:9,  cd:0.70,range:3.4, atk:'single'},
+  ],
+  generals:[
+    {name:'刘备',frags:['刘','备'],dmg:62,cd:0.95,range:2.9,splash:0,fx:'liubei'},
+    {name:'关羽',frags:['关','羽'],dmg:96,cd:0.72,range:4.2,splash:0,fx:'guanyu'},
+    {name:'张飞',frags:['张','飞'],dmg:112,cd:0.85,range:2.7,splash:0,fx:'zhangfei'},
+    {name:'赵云',frags:['赵','云'],dmg:82,cd:0.50,range:4.6,splash:0,fx:'zhaoyun'},
+    {name:'黄忠',frags:['黄','忠'],dmg:104,cd:1.00,range:5.6,splash:0,fx:'huangzhong'},
+    {name:'马超',frags:['马','超'],dmg:90,cd:0.45,range:3.5,splash:0,fx:'machao'},
+    {name:'诸葛亮',frags:['诸','葛','亮'],dmg:56,cd:0.55,range:5.0,splash:1.8,fx:'zhugeliang'},
+    {name:'黄月英',frags:['黄','月','英'],dmg:72,cd:0.60,range:3.8,splash:1.3,fx:'huangyueying'},
+  ],
+  foeChars:['娥','妖','鬼','怪','卒'],
+};
+const TONE={'刀':'#9a5b3d','枪':'#8a6d2f','弓':'#3f6b58','骑':'#8c4a2f',
+  '刘备':'#c9a23a','关羽':'#3f7a4a','张飞':'#a03b2e','赵云':'#4a6fa5','黄忠':'#b07d2f',
+  '马超':'#5a6fb0','诸葛亮':'#6b4fa0','黄月英':'#b85fa0','铲':'#61808e','令':'#b23a2e'};
+const LEVEL_MULT=1.8, MAX_LEVEL=5;
+/* 武将名字池：把每位武将的每个字平铺进池子，抽碎片时「每个字在池子里的占比」等概率。
+   「黄」被黄忠与黄月英共用，一个黄两用 → 池子里只计一份（若按两个名字各计一次，
+   黄的出现率会是其他字的两倍，把忠/月/英挤掉）。 */
+const CHAR_POOL=(()=>{ const seen=new Set(), out=[];
+  for(const g of THEME.generals) for(const f of g.frags){ if(seen.has(f)) continue; seen.add(f); out.push({ch:f,gen:g.name}); }
+  return out; })();
+
+/* ============================ 每关随机生成的山路 ============================ */
+const HROWS=5, HCOLS=7;
+const kOf=(r,c)=>r*HCOLS+c;
+
+/* 下面这些量每关都会重算（见 applyLevel） */
+let BASE={r:4,c:6};
+let BASE_KEY=kOf(4,6);
+let PATH=[];
+let ROAD_KEYS=new Set();
+let TOWER_KEYS=[];
+let INIT_UNLOCKED=new Set();
+let TOWER_LOCKED=0;
+let PATH_PTS=[], SEG=[], PATH_LEN=0;
+let LEVEL_HP_MUL=1;      // 关数越高小怪越硬
+let LEVEL_RAMP=1;        // 仅关数带来的系数（不含地图长度）
+let CUR_LEVEL=1;
+
+const MAP_FALLBACK=[[0,0],[0,1],[0,2],[0,3],[1,3],[1,4],[1,5],[2,5],[2,4],[2,3],[2,2],
+  [3,2],[3,3],[3,4],[3,5],[3,6],[4,6]];
+
+/* 可复现随机：同一关永远生成同一张图（重试本关地图不变，换关才换图） */
+function mulberry32(a){
+  return function(){ a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296; };
+}
+/* 从入口沿山路「走」到阵地：自避让随机 DFS，长度限定 [MIN,maxLen] */
+function walkToBase(entry,base,rnd,maxLen){
+  const MIN=11;
+  const seen=new Set([kOf(entry.r,entry.c)]);
+  const path=[{r:entry.r,c:entry.c}];
+  let done=false;
+  (function dfs(r,c){
+    if(done) return;
+    if(r===base.r&&c===base.c){ if(path.length>=MIN) done=true; return; }
+    if(path.length>=maxLen) return;
+    const nb=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>
+      rr>=0&&rr<HROWS&&cc>=0&&cc<HCOLS&&!seen.has(kOf(rr,cc)));
+    for(let i=nb.length-1;i>0;i--){ const j=(rnd()*(i+1))|0; const t=nb[i]; nb[i]=nb[j]; nb[j]=t; }
+    for(const [rr,cc] of nb){
+      const k=kOf(rr,cc);
+      seen.add(k); path.push({r:rr,c:cc});
+      dfs(rr,cc);
+      if(done) return;
+      path.pop(); seen.delete(k);
+    }
+  })(entry.r,entry.c);
+  return done? path : null;
+}
+/* 生成一关地图：阵地放内部格（好让路线绕着它转）、入口放边框；
+   生成 160 张候选，按「长度 + 转弯数 + 贴着阵地绕过的格数」打分取最优 */
+function genLevel(level){
+  const rnd=mulberry32(((level*2654435761)>>>0)^0x9e3779b9);
+  const inner=[], border=[];
+  for(let r=0;r<HROWS;r++)for(let c=0;c<HCOLS;c++){
+    if(r===0||c===0||r===HROWS-1||c===HCOLS-1) border.push({r,c}); else inner.push({r,c});
+  }
+  let best=null;
+  const maxLen=12+((rnd()*6)|0);        // 每关山路长度 12~17 格，长短不一
+  for(let t=0;t<160;t++){
+    const base=inner[(rnd()*inner.length)|0];
+    const entry=border[(rnd()*border.length)|0];
+    const path=walkToBase(entry,base,rnd,maxLen);
+    if(!path) continue;
+    let turns=0;
+    for(let i=1;i<path.length-1;i++){
+      const a=path[i-1],b=path[i],c=path[i+1];
+      if((a.r!==b.r)!==(b.r!==c.r)||(a.c!==b.c)!==(b.c!==c.c)) turns++;
+    }
+    let hug=0;                                  // 路径上（除终点）与阵地相邻的格数
+    for(let i=0;i<path.length-1;i++){
+      const p=path[i];
+      if(Math.abs(p.r-base.r)+Math.abs(p.c-base.c)===1) hug++;
+    }
+    // 这条路「能被塔打到」的格数：越多说明可布防的位置越充裕，关卡越不至于无解
+    const road=new Set(path.slice(0,-1).map(p=>kOf(p.r,p.c)));
+    const cover=new Set();
+    for(const kk of road){
+      const rr=Math.floor(kk/HCOLS), cc=kk%HCOLS;
+      for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+        const r2=rr+dr, c2=cc+dc;
+        if(r2<0||r2>=HROWS||c2<0||c2>=HCOLS) continue;
+        const k2=kOf(r2,c2);
+        if(road.has(k2)||k2===kOf(base.r,base.c)) continue;
+        cover.add(k2);
+      }
+    }
+    if(cover.size<10) continue;                 // 可布防位太少的图直接不要
+    const score=path.length*3+turns*2+hug*5+cover.size*4;
+    if(!best||score>best.score) best={path,base,score};
+  }
+  return best||{path:MAP_FALLBACK.map(([r,c])=>({r,c})),base:{r:4,c:6}};
+}
+/* 应用某一关：重算路径 / 阵地 / 塔位 / 起始解锁 / 难度系数 */
+function applyLevel(level){
+  const m=genLevel(level);
+  PATH=m.path.map(p=>[p.r,p.c]);
+  BASE={r:m.base.r,c:m.base.c};
+  BASE_KEY=kOf(BASE.r,BASE.c);
+  ROAD_KEYS=new Set(PATH.slice(0,-1).map(([r,c])=>kOf(r,c)));
+  TOWER_KEYS=[];
+  for(let r=0;r<HROWS;r++)for(let c=0;c<HCOLS;c++){
+    const k=kOf(r,c);
+    if(!ROAD_KEYS.has(k)&&k!==BASE_KEY) TOWER_KEYS.push(k);
+  }
+  // 起始解锁：离山路最近的几格（保证开局就有能打到路的塔位），关数越高给得越多
+  const want=Math.min(8,4+Math.floor((level-1)/2));
+  const dRoad=k=>{ const r=Math.floor(k/HCOLS),c=k%HCOLS; let m2=99;
+    for(const kk of ROAD_KEYS){ const rr=Math.floor(kk/HCOLS),cc=kk%HCOLS;
+      const d=Math.hypot(r-rr,c-cc); if(d<m2) m2=d; } return m2; };
+  const ortho=k=>{ const r=Math.floor(k/HCOLS),c=k%HCOLS;
+    for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+      const rr=r+dr, cc=c+dc;
+      if(rr<0||rr>=HROWS||cc<0||cc>=HCOLS) continue;
+      if(ROAD_KEYS.has(rr*HCOLS+cc)) return 0;      // 上下左右贴着路的最优先
+    }
+    return 1; };
+  const sorted=TOWER_KEYS.slice().sort((a,b)=> (ortho(a)-ortho(b)) || (dRoad(a)-dRoad(b)));
+  const orthoCells=sorted.filter(k=>ortho(k)===0), otherCells=sorted.filter(k=>ortho(k)!==0);
+  INIT_UNLOCKED=new Set();
+  const spreadOk=k=>{ const r=Math.floor(k/HCOLS),c=k%HCOLS;
+    for(const kk of INIT_UNLOCKED){ const rr=Math.floor(kk/HCOLS),cc=kk%HCOLS;
+      if(Math.abs(r-rr)+Math.abs(c-cc)<2) return false; }        // 别全挤在一处
+    return true; };
+  const need=Math.min(want,Math.max(4,orthoCells.length));       // 贴路的格不够就少开几格，保证每格都能打到路
+  for(const k of orthoCells){ if(INIT_UNLOCKED.size>=need) break; if(spreadOk(k)) INIT_UNLOCKED.add(k); }
+  for(const k of orthoCells){ if(INIT_UNLOCKED.size>=need) break; INIT_UNLOCKED.add(k); }   // 放松间距，但仍是贴路的格
+  for(const k of otherCells){ if(INIT_UNLOCKED.size>=4) break; INIT_UNLOCKED.add(k); }     // 兜底：至少给 4 格
+  TOWER_LOCKED=TOWER_KEYS.length-INIT_UNLOCKED.size;
+  PATH_PTS=PATH.map(([r,c])=>({x:c,y:r}));
+  SEG=[]; PATH_LEN=0;
+  for(let i=0;i<PATH_PTS.length-1;i++){
+    const a=PATH_PTS[i],b=PATH_PTS[i+1],len=Math.hypot(b.x-a.x,b.y-a.y);
+    SEG.push({a,b,len,start:PATH_LEN}); PATH_LEN+=len;
+  }
+  // 难度 = 关数系数 × 地图长度系数：山路越短，塔能打到的时间越少，小怪就相应调弱，
+  // 免得「抽到一张短路地图就必死」
+  LEVEL_RAMP=1+Math.min(0.20,(level-1)*0.01);            // 每关 +1%，最多 +20%
+  const lenMul=Math.max(0.86,Math.min(1.06,0.86+0.03*(PATH_LEN-11)));
+  LEVEL_HP_MUL=LEVEL_RAMP*lenMul;
+  CUR_LEVEL=level;
+}
+function pointAt(prog){
+  if(!PATH_PTS.length) return {x:0,y:0};
+  if(prog<=0) return {x:PATH_PTS[0].x,y:PATH_PTS[0].y};
+  const last=PATH_PTS[PATH_PTS.length-1];
+  if(prog>=PATH_LEN) return {x:last.x,y:last.y};
+  for(const s of SEG){
+    if(prog<=s.start+s.len){ const t=(prog-s.start)/s.len;
+      return {x:s.a.x+(s.b.x-s.a.x)*t,y:s.a.y+(s.b.y-s.a.y)*t}; }
+  }
+  return {x:last.x,y:last.y};
+}
+function disp(isAI,r,c){ return isAI?{dr:HROWS-1-r,dc:HCOLS-1-c}:{dr:r,dc:c}; }
+
+/* ============================ 平衡参数 ============================ */
+const HAND_COLS=6, HAND_ROWS=2, HAND_SIZE=HAND_COLS*HAND_ROWS, HAND_INIT_OPEN=HAND_COLS;
+const RECRUIT_COUNT=3, TOTAL_WAVES=20, RECRUIT_COST=9, DISCARD_REFUND=1;
+const HAND_LOCKED=HAND_SIZE-HAND_INIT_OPEN;
+const P_TOKEN=0.05, P_SHOVEL=0.10, P_FRAG=0.16;
+const START_MANTOU=12, START_HP=30, INCOME=0.6, WAVE_BONUS=5, MANTOU_CAP=40;
+const AI_DMG_MULT=1.0, AI_INCOME_MULT=1.0;   // 与玩家同资源同伤害，公平对抗（不再「对手阵地资源太宽松」）
+const FOE_HP_BASE=60, FOE_HP_MUL=0.62, FOE_HP_EXP=1.45, BOSS_HP=900, BOSS_DMG=14;
+
+/* ============================ 状态 ============================ */
+function makeField(isAI){
+  const slots={};
+  for(const k of TOWER_KEYS) slots[k]={unlocked:INIT_UNLOCKED.has(k)};
+  return {isAI,hp:START_HP,maxHp:START_HP,mantou:START_MANTOU,autoShovels:0,shovelBudget:TOWER_LOCKED,
+    slots,units:[],foes:[],spawnList:[],spawnTimer:0,lost:false,
+    _unitEls:new Map(),_foeEls:new Map()};
+}
+let G=null;
+function newGame(){
+  // 每局随机「铲 / 令」可出现的上限（不总是等于全部未解锁数，所以不是每局都能全部解锁）
+  const shLo=Math.max(1,Math.floor(TOWER_LOCKED*0.4)), tkLo=Math.max(1,Math.floor(HAND_LOCKED*0.4));
+  const shCap=shLo+(Math.random()*(TOWER_LOCKED-shLo+1)|0);
+  const tkCap=tkLo+(Math.random()*(HAND_LOCKED-tkLo+1)|0);
+  const g={running:false,paused:false,over:false,win:false,
+    wave:0,waveTimer:0,level:CUR_LEVEL,
+    me:makeField(false),ai:makeField(true),
+    hand:new Array(HAND_SIZE).fill(null),
+    handOpen:Array.from({length:HAND_SIZE},(_,i)=>i<HAND_INIT_OPEN),
+    fragTarget:null,fragHave:[],
+    shovelBudget:shCap,tokenBudget:tkCap,shovelCap:shCap,tokenCap:tkCap,
+    aiTimer:0,time:0,nextId:1,cell:48,
+    drag:null,suppressClick:0,press:null,hintLift:false};
+  g.me.shovelBudget=shCap; g.ai.shovelBudget=shCap;   // 玩家与对手各自按本局上限抽铲
+  return g;
+}
+
+/* ============================ DOM ============================ */
+const $=id=>document.getElementById(id);
+const el={app:$('app'),arena:$('arena'),halfMe:$('halfMe'),halfAI:$('halfAI'),
+  hand:$('hand'),handRow0:$('handRow0'),handRow1:$('handRow1'),
+  camp:$('camp'),mantou:$('mantou'),baseHp:{},
+  waveText:$('waveText'),recruitBtn:$('recruitBtn'),costText:$('costText'),pauseBtn:$('pauseBtn'),
+  orbShovel:$('orbShovel'),shovelText:$('shovelText'),orbSlots:$('orbSlots'),slotText:$('slotText'),
+  orbReset:$('orbReset'),rangeRing:$('rangeRing'),rangeLabel:$('rangeLabel'),
+  overlay:$('overlay'),ovTitle:$('ovTitle'),ovText:$('ovText'),ovMain:$('ovMain'),ovAgain:$('ovAgain'),
+  home:$('home'),homeStart:$('homeStart'),homeLevel:$('homeLevel'),gameHome:$('gameHome'),sndBtn:$('sndBtn'),
+  homeSnd:$('homeSnd'),
+  toast:$('toast'),tiles:{me:{},ai:{}},hslots:[]};
+el.costText.textContent=RECRUIT_COST;
+
+/* ============================ 声音（全部用 Web Audio 合成，无外部文件） ============================ */
+const SND_KEY='baohuadou_sound_v1';
+let AC=null,sndMaster=null,sndMusic=null,sndFx=null,sndOn=true,noiseBuf=null;
+let musicTimer=null,musicStep=0,musicNext=0,lastFxAt=-1;
+const fxLast={};
+function sndLoad(){ try{ const v=localStorage.getItem(SND_KEY); if(v!==null) sndOn=v!=='0'; }catch(e){} }
+function sndSave(){ try{ localStorage.setItem(SND_KEY,sndOn?'1':'0'); }catch(e){} }
+function initAudio(){
+  if(AC) return AC;
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx) return null;
+  try{ AC=new Ctx(); }catch(e){ AC=null; return null; }
+  sndMaster=AC.createGain(); sndMaster.gain.value=sndOn?0.9:0; sndMaster.connect(AC.destination);
+  sndMusic=AC.createGain(); sndMusic.gain.value=0; sndMusic.connect(sndMaster);
+  sndFx=AC.createGain(); sndFx.gain.value=0.5; sndFx.connect(sndMaster);
+  return AC;
+}
+/* 必须在用户手势里调用，否则浏览器不让出声 */
+function resumeAudio(){
+  const c=initAudio(); if(!c) return null;
+  if(c.state==='suspended'){ try{ c.resume(); }catch(e){} }
+  return c;
+}
+function noiseBufGet(){
+  if(!AC) return null;
+  if(noiseBuf) return noiseBuf;
+  const n=Math.floor(AC.sampleRate*0.6), b=AC.createBuffer(1,n,AC.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+  noiseBuf=b; return b;
+}
+/* 单个音：freq→to 滑音 + 指数衰减 */
+function tone(freq,dur,o){
+  if(!AC) return; o=o||{};
+  const t=AC.currentTime+(o.at||0), os=AC.createOscillator(), g=AC.createGain();
+  os.type=o.type||'sine'; os.frequency.setValueAtTime(freq,t);
+  if(o.to) os.frequency.exponentialRampToValueAtTime(Math.max(20,o.to),t+dur);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?0.2:o.gain,t+Math.min(0.02,dur*0.3));
+  g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  os.connect(g); g.connect(o.bus||sndFx); os.start(t); os.stop(t+dur+0.04);
+}
+/* 噪声：带通/低通扫频，用来做刀风、马蹄、打击 */
+function hiss(dur,o){
+  if(!AC) return; o=o||{};
+  const buf=noiseBufGet(); if(!buf) return;
+  const t=AC.currentTime+(o.at||0), s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  s.buffer=buf; s.loop=true;
+  f.type=o.type||'bandpass'; f.frequency.setValueAtTime(o.freq||1500,t); f.Q.value=o.q==null?1.1:o.q;
+  if(o.to) f.frequency.exponentialRampToValueAtTime(Math.max(60,o.to),t+dur);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?0.16:o.gain,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  s.connect(f); f.connect(g); g.connect(o.bus||sndFx); s.start(t); s.stop(t+dur+0.04);
+}
+/* 节流：几十个单位同时开打时别糊成一片噪音 */
+function canPlay(key,gap){
+  if(!AC||!sndOn) return false;
+  const now=AC.currentTime;
+  if(now-lastFxAt<0.028) return false;
+  if(fxLast[key]!=null&&now-fxLast[key]<gap) return false;
+  fxLast[key]=now; lastFxAt=now; return true;
+}
+/* 武将各自的音色 */
+function sfxGeneral(name){
+  switch(name){
+    case '关羽': tone(1180,.22,{type:'triangle',gain:.12}); tone(1770,.18,{type:'sine',gain:.07,at:.01});
+                 hiss(.13,{freq:4200,to:2400,gain:.08}); break;
+    case '张飞': tone(96,.3,{type:'sawtooth',gain:.15,to:58}); hiss(.28,{freq:520,gain:.12,type:'lowpass'}); break;
+    case '赵云': hiss(.17,{freq:4200,to:1100,gain:.11,q:1.6}); tone(880,.12,{type:'triangle',gain:.07,to:1500}); break;
+    case '黄忠': tone(720,.1,{type:'triangle',gain:.12,to:250}); hiss(.11,{freq:3000,to:1400,gain:.07}); break;
+    case '马超': hiss(.2,{freq:2600,to:600,gain:.12,q:1.2}); tone(220,.16,{type:'sawtooth',gain:.08,to:110}); break;
+    case '诸葛亮': tone(1320,.34,{type:'sine',gain:.11}); tone(1980,.3,{type:'sine',gain:.06,at:.02}); break;
+    case '黄月英': tone(1560,.26,{type:'triangle',gain:.1}); tone(2340,.22,{type:'sine',gain:.06,at:.03}); break;
+    case '刘备': tone(660,.2,{type:'triangle',gain:.11}); tone(990,.18,{type:'sine',gain:.06,at:.02}); break;
+    default: tone(700,.18,{type:'triangle',gain:.1});
+  }
+}
+/* 卡牌攻击音效：刀/枪/弓/骑 + 每位武将 */
+function sfxAttack(u){
+  if(!sndOn||!AC) return;
+  const isGen=(u.kind==='general')||(u.active&&u.general);
+  const key=isGen?(u.name||u.general):u.key;
+  if(!canPlay('a:'+key,isGen?0.10:0.075)) return;
+  if(isGen){ sfxGeneral(key); return; }
+  if(key==='刀'){ hiss(.1,{freq:2100,to:700,gain:.15,q:.9}); tone(150,.13,{type:'triangle',gain:.14,to:70}); }
+  else if(key==='枪'){ hiss(.16,{freq:3200,to:900,gain:.13,q:1.4}); tone(520,.1,{type:'sawtooth',gain:.05,to:220}); }
+  else if(key==='弓'){ tone(880,.09,{type:'triangle',gain:.13,to:330}); hiss(.07,{freq:2600,gain:.07,q:.8}); }
+  else if(key==='骑'){ tone(110,.18,{type:'sine',gain:.18,to:60}); hiss(.16,{freq:900,to:300,gain:.1,type:'lowpass'}); }
+  else tone(440,.08,{type:'square',gain:.07});
+}
+function sfxKill(boss){
+  if(!canPlay('kill'+(boss?'B':'S'),boss?0.05:0.09)) return;
+  if(boss){ tone(180,.4,{type:'sawtooth',gain:.16,to:70}); hiss(.34,{freq:800,to:200,gain:.13,type:'lowpass'}); }
+  else hiss(.09,{freq:1600,to:600,gain:.08});
+}
+function sfxDraw(){ if(!canPlay('draw',0.12)) return; tone(760,.1,{type:'triangle',gain:.09,to:1120}); hiss(.05,{freq:3200,gain:.05}); }
+function sfxUp(){ if(!canPlay('up',0.1)) return; tone(660,.1,{type:'triangle',gain:.1}); tone(990,.14,{type:'triangle',gain:.09,at:.07}); }
+function sfxUnlock(){ if(!canPlay('unlock',0.1)) return; tone(420,.09,{type:'square',gain:.06}); hiss(.06,{freq:2200,gain:.06}); }
+function sfxWin(){ if(!AC||!sndOn) return; [0,4,7,12].forEach((s,i)=>tone(523*Math.pow(2,s/12),.42,{type:'triangle',gain:.12,at:i*.13})); }
+function sfxLose(){ if(!AC||!sndOn) return; [0,-3,-7].forEach((s,i)=>tone(392*Math.pow(2,s/12),.5,{type:'sine',gain:.13,at:i*.17})); }
+
+/* ---- 背景音乐：五声音阶循环（古筝味的拨弦 + 低音） ---- */
+const MUSIC_STEP=0.417;                       // 72 BPM 的八分音符
+const PENT=[0,2,4,7,9,12,14,16,19,21];        // 五声音阶（相对主音的半音数）
+const MELODY=[0,-1,2,4, 2,-1,1,-1, 0,2,4,6, 4,2,1,-1];
+function musicNote(freq,t,dur,gain,type){
+  const os=AC.createOscillator(), g=AC.createGain(), f=AC.createBiquadFilter();
+  os.type=type||'triangle'; os.frequency.setValueAtTime(freq,t);
+  f.type='lowpass'; f.frequency.setValueAtTime(2600,t); f.frequency.exponentialRampToValueAtTime(850,t+dur);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+0.016);
+  g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  os.connect(f); f.connect(g); g.connect(sndMusic); os.start(t); os.stop(t+dur+0.05);
+}
+function musicPump(){
+  if(!AC||!sndOn) return;
+  const ahead=AC.currentTime+0.3;
+  while(musicNext<ahead){
+    const s=musicStep%16, d=MELODY[s];
+    if(d>=0) musicNote(146.83*Math.pow(2,PENT[d]/12),musicNext,1.0,0.13);
+    if(s===0||s===8) musicNote(73.42,musicNext,1.9,0.18,'sine');
+    if(s===6||s===14) musicNote(110,musicNext,1.2,0.09,'sine');
+    musicNext+=MUSIC_STEP; musicStep++;
+  }
+}
+function startMusic(){
+  const c=resumeAudio(); if(!c||!sndOn) return;
+  if(musicTimer) return;
+  musicNext=c.currentTime+0.08; musicStep=0;
+  sndMusic.gain.cancelScheduledValues(c.currentTime);
+  sndMusic.gain.setValueAtTime(sndMusic.gain.value,c.currentTime);
+  sndMusic.gain.linearRampToValueAtTime(0.42,c.currentTime+1.8);
+  musicPump(); musicTimer=setInterval(musicPump,70);
+}
+function stopMusic(){
+  if(musicTimer){ clearInterval(musicTimer); musicTimer=null; }
+  if(!AC) return;
+  const t=AC.currentTime;
+  sndMusic.gain.cancelScheduledValues(t);
+  sndMusic.gain.setValueAtTime(sndMusic.gain.value,t);
+  sndMusic.gain.linearRampToValueAtTime(0,t+0.7);
+}
+function paintSndBtn(){
+  const ico=sndOn?'🔊':'🔇', tip=sndOn?'声音开（点一下静音）':'静音（点一下开启）';
+  for(const b of [el.sndBtn,el.homeSnd]) if(b){ b.textContent=ico; b.title=tip; }
+}
+function toggleSound(){
+  sndOn=!sndOn; sndSave();
+  if(sndOn){
+    const c=resumeAudio();
+    if(c&&sndMaster) sndMaster.gain.setTargetAtTime(0.9,c.currentTime,0.04);
+    if(c&&G&&G.running&&!G.over&&!G.paused) startMusic();   // 只有在对局中才起 BGM
+  } else {
+    if(AC&&sndMaster) sndMaster.gain.setTargetAtTime(0,AC.currentTime,0.04);
+    stopMusic();
+  }
+  paintSndBtn();
+}
+sndLoad();
+
+function buildField(f,host,which){
+  host.innerHTML=''; el.tiles[which]={};
+  for(let r=0;r<HROWS;r++)for(let c=0;c<HCOLS;c++){
+    const k=kOf(r,c),d=document.createElement('div');
+    let cls='cell';
+    if(k===BASE_KEY) cls+=' base';
+    else if(ROAD_KEYS.has(k)) cls+=' road';
+    else cls+=' tower '+(f.slots[k].unlocked?'unlocked':'locked');
+    d.className=cls;
+    const p=disp(f.isAI,r,c);
+    d.style.gridRow=p.dr+1; d.style.gridColumn=p.dc+1;
+    d.dataset.r=r; d.dataset.c=c;
+    if(k===BASE_KEY) d.innerHTML=`<b class="bh">30</b><span class="bz">${THEME.baseChar}</span>`;
+    host.appendChild(d); el.tiles[which][k]=d;
+  }
+  el.baseHp=el.baseHp||{};
+  el.baseHp[which]=host.querySelector('.cell.base .bh');
+  drawRoad(which);
+}
+function drawRoad(which){
+  const host=which==='me'?el.halfMe:el.halfAI;
+  const ex=host.querySelector('.road-svg'); if(ex) ex.remove();
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','road-svg'); svg.setAttribute('viewBox',`0 0 ${HCOLS} ${HROWS}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  const pts=PATH.map(([r,c])=>{ const p=disp(which==='me'?false:true,r,c);
+    return `${(p.dc+0.5).toFixed(3)},${(p.dr+0.5).toFixed(3)}`; });
+  const d='M'+pts.join(' L');
+  svg.innerHTML=`<path d="${d}" class="road-stroke"/><path d="${d}" class="road-fill"/><path d="${d}" class="road-dash"/>`;
+  host.appendChild(svg);
+}
+function refreshTile(which,k){
+  const d=el.tiles[which][k]; if(!d) return;
+  const f=which==='me'?G.me:G.ai;
+  d.className='cell tower '+(f.slots[k].unlocked?'unlocked':'locked');
+}
+function fitArena(){
+  const w=(el.app.clientWidth||480)-18;
+  const appR=el.app.getBoundingClientRect(), ar=el.arena.getBoundingClientRect();
+  const rest=Math.max(0,appR.height-ar.height);
+  const availH=(window.innerHeight||844)-rest-10;
+  /* 棋盘内除格子之外的高度：两半的格子间距+边框、arena 的行间距、交战线、上下两条小字 */
+  const mid=document.querySelector('.midline');
+  const half=el.halfMe, hcs=getComputedStyle(half), acs=getComputedStyle(el.arena);
+  const perHalf=(HROWS-1)*(parseFloat(hcs.rowGap)||0)+(parseFloat(hcs.borderTopWidth)||0)+(parseFloat(hcs.borderBottomWidth)||0);
+  let kids=0, sidesH=0;
+  for(const c of el.arena.children){
+    if(c.classList.contains('range-ring')) continue;
+    if(!c.offsetHeight) continue;
+    kids++;
+    if(c.classList.contains('side')) sidesH+=c.offsetHeight;
+  }
+  const extra=perHalf*2+Math.max(0,kids-1)*(parseFloat(acs.rowGap)||0)+(mid?mid.offsetHeight:0)+sidesH;
+  let cell=Math.floor(Math.min(62,w/HCOLS,(availH-extra)/(2*HROWS)));
+  if(!isFinite(cell)||cell<22) cell=22;
+  G.cell=cell; el.arena.style.setProperty('--cell',cell+'px');
+  /* 吐司贴到交战线中央，别盖住「对手阵地」那行小字 */
+  const root=document.documentElement;
+  if(mid&&root&&root.style){ const mr=mid.getBoundingClientRect();
+    if(mr.height>0) root.style.setProperty('--toastTop',Math.round(mr.top+mr.height/2-15)+'px'); }
+}
+function halfMetrics(which){
+  const h=which==='me'?el.halfMe:el.halfAI;
+  const cw=(h.clientWidth||HCOLS*G.cell)/HCOLS, ch=(h.clientHeight||HROWS*G.cell)/HROWS;
+  return {cw,ch};
+}
+function unitPx(f,which,u){
+  const p=disp(f.isAI,u.r,u.c), m=halfMetrics(which);
+  return {x:(p.dc+(u.w||1)/2)*m.cw, y:(p.dr+(u.h||1)/2)*m.ch};
+}
+function foePx(f,which,foe){
+  const pt=pointAt(foe.prog), p=disp(f.isAI,pt.y,pt.x), m=halfMetrics(which);
+  return {x:(p.dc+0.5)*m.cw,y:(p.dr+0.5)*m.ch};
+}
+
+/* ============================ 卡牌 ============================ */
+const soldierCard=(key,level)=>({kind:'soldier',key,level:level||1});
+const fragCard=(name,key,level)=>({kind:'frag',key,general:name,level:level||1});
+const generalCard=(name,level)=>({kind:'general',name,level:level||1});
+const shovelCard=()=>({kind:'shovel',key:'铲'});
+const tokenCard=()=>({kind:'token',key:'令'});
+function cardLabel(c){
+  if(!c) return '空';
+  if(c.kind==='soldier') return c.key+(c.level>1?c.level:'');
+  if(c.kind==='frag') return c.key+'碎';
+  if(c.kind==='general') return c.name;
+  return c.key;
+}
+function cardTone(c){
+  if(c.kind==='general') return TONE[c.name]||'#d9a52a';
+  if(c.kind==='frag') return '#a98ad0';
+  return TONE[c.key]||'#b9a183';
+}
+function unitStat(card){
+  if(card.kind==='general'){ const g=THEME.generals.find(x=>x.name===card.name), lv=card.level||1;
+    return {dmg:g.dmg*Math.pow(LEVEL_MULT,lv-1),cd:g.cd,range:g.range+0.15*(lv-1),splash:g.splash||0,atk:'single'}; }
+  const s=THEME.soldiers.find(x=>x.key===card.key);
+  const atk=s.atk||'single';
+  return {dmg:s.dmg*Math.pow(LEVEL_MULT,card.level-1),cd:s.cd,range:s.range,splash:atk==='aoe'?1.1:0,atk};
+}
+function randomSoldier(forAI){
+  const s=THEME.soldiers[(Math.random()*THEME.soldiers.length)|0];
+  // 抽到的兵自带 2 级的概率调低（玩家侧 0.12→0.05），减少「白送半级」、让高级兵更靠积累
+  return soldierCard(s.key,Math.random()<(forAI?0.12:0.05)?2:1);
+}
+/* 抽碎片：在整个名字池里等概率抽一个字（每个字占比相同）。
+   **已封顶（满级）的武将不再刷出它的字**——避免「满级了还一直来同一套字」。
+   「黄」被黄忠/黄月英共用：只要两者还有一个没满级，黄就继续出；两个都满级才停。 */
+function drawFrag(){
+  const maxed=new Set();
+  for(const u of G.me.units) if(u.kind==='general'&&u.level>=MAX_LEVEL) maxed.add(u.name);
+  const pool=[];
+  for(const e of CHAR_POOL){
+    const g=THEME.generals.find(gg=>gg.frags.includes(e.ch)&&!maxed.has(gg.name));
+    if(g) pool.push({ch:e.ch,gen:g.name});
+  }
+  if(!pool.length) return null;                 // 全部武将都满级了 → 不再出碎片
+  const e=pool[(Math.random()*pool.length)|0];
+  return fragCard(e.gen,e.ch);
+}
+function drawCard(forAI){
+  const r=Math.random();
+  if(r<P_TOKEN){
+    if(forAI) return randomSoldier(true);
+    if(G.tokenBudget>0){ G.tokenBudget--; return tokenCard(); }
+    return randomSoldier(false);
+  }
+  if(r<P_TOKEN+P_SHOVEL){
+    const bud=forAI?G.ai.shovelBudget:G.shovelBudget;
+    if(bud>0){ if(forAI) G.ai.shovelBudget--; else G.shovelBudget--; return shovelCard(); }
+    return randomSoldier(forAI);
+  }
+  if(!forAI&&r<P_TOKEN+P_SHOVEL+P_FRAG){ const f=drawFrag(); if(f) return f; }
+  return randomSoldier(forAI);
+}
+function freeHandSlots(){
+  const out=[];
+  for(let i=0;i<HAND_SIZE;i++) if(G.handOpen[i]&&G.hand[i]===null) out.push(i);
+  return out;
+}
+function freeHandIndex(){ const a=freeHandSlots(); return a.length?a[0]:-1; }
+function recruit(){
+  if(!G.running||G.paused||G.over) return;
+  const me=G.me;
+  if(me.mantou<RECRUIT_COST){ toast('馒头不够，等一会儿～'); return; }
+  const free=freeHandSlots();
+  if(free.length<RECRUIT_COUNT){
+    toast(`手牌空余不足 ${RECRUIT_COUNT} 格，无法征兵（丢弃/移走一些字牌，或用「令」开新格）`);
+    return;
+  }
+  me.mantou-=RECRUIT_COST; sfxDraw();
+  const got=[];
+  for(let i=0;i<RECRUIT_COUNT;i++){ const c=drawCard(false); G.hand[free[i]]=c; got.push(c); }
+  renderHand(); renderHUD();
+  toast(`征兵 ×${RECRUIT_COUNT}：${got.map(cardLabel).join(' · ')}`);
+  return got;
+}
+function discardHand(idx){
+  if(!G.hand[idx]) return false;
+  G.hand[idx]=null; G.me.mantou+=DISCARD_REFUND;
+  renderHand(); renderHUD(); toast('🗑 丢弃卡牌，返还 1 馒头');
+  return true;
+}
+function grantShovelCard(){
+  const idx=freeHandIndex();
+  if(idx<0){ G.me.mantou+=3; toast('手牌已满，保底「铲」换成 +3 馒头'); return false; }
+  G.hand[idx]=shovelCard(); return true;
+}
+function countCard(kind){
+  let n=0; for(let i=0;i<HAND_SIZE;i++) if(G.handOpen[i]&&G.hand[i]&&G.hand[i].kind===kind) n++;
+  return n;
+}
+function tryUnlock(f,r,c,which){
+  const k=kOf(r,c),s=f.slots[k];
+  if(!s||s.unlocked||f.isAI) return false;
+  const idx=G.hand.findIndex((card,i)=>G.handOpen[i]&&card&&card.kind==='shovel');
+  if(idx<0){ toast('这格还锁着，拖一张「铲」字牌过来解锁'); return false; }
+  G.hand[idx]=null; s.unlocked=true; refreshTile(which,k); sfxUnlock();
+  toast(`🔓 解锁成功！(${TOWER_KEYS.filter(x=>f.slots[x].unlocked).length}/${TOWER_KEYS.length})`);
+  return true;
+}
+function unlockHandSlot(idx){
+  if(idx<0||idx>=HAND_SIZE||G.handOpen[idx]) return false;
+  const src=G.hand.findIndex((card,i)=>G.handOpen[i]&&card&&card.kind==='token');
+  if(src<0){ toast('需要一张「令」字牌才能解锁手牌格'); return false; }
+  G.hand[src]=null; G.handOpen[idx]=true;
+  toast('🔓 手牌格解锁！多一个放牌位');
+  return true;
+}
+/* 双击手牌里的「令」→ 自动解锁下一个锁着的手牌格并消耗令牌 */
+function unlockNextHandSlot(){
+  const idx=G.handOpen.findIndex(o=>!o);
+  if(idx<0){ toast('手牌已全部解锁，无需令牌'); return false; }
+  const src=G.hand.findIndex((card,i)=>G.handOpen[i]&&card&&card.kind==='token');
+  if(src<0){ toast('需要一张「令」字牌才能解锁手牌格'); return false; }
+  G.hand[src]=null; G.handOpen[idx]=true;
+  toast('🔓 手牌格解锁！多一个放牌位');
+  renderHand(); renderHUD();
+  return true;
+}
+/* 拆开已成武将：移除整体单位，把每个名字字变回单独碎片卡回手牌 */
+function splitGeneral(f,u){
+  const i=f.units.indexOf(u); if(i<0) return false;
+  if(!f.isAI && u.active) return false;
+  const g=THEME.generals.find(x=>x.name===u.name); if(!g) return false;
+  const free=freeHandSlots();
+  if(free.length<g.frags.length){
+    if(!f.isAI) toast('手牌空间不足，无法拆分武将（先腾出 '+g.frags.length+' 个空位）');
+    return false;
+  }
+  f.units.splice(i,1);
+  g.frags.forEach((k,idx)=>{ G.hand[free[idx]]=fragCard(u.name,k,(u.fragLevels&&u.fragLevels[idx])||u.level||1); });
+  if(!f.isAI){ toast('🔨 '+u.name+' 已拆成单独的字，回到手牌'); renderHand(); renderField(f,'me'); renderHUD(); }
+  return true;
+}
+/* 撤换武将：拆成单独的字「留在场上」（不再整体回手牌），逐个拖走、没拖到的保留；
+   拆出的字带 noMerge，避免相邻后又被自动重合并回武将 */
+function breakGeneralToFrags(f,u){
+  const g=THEME.generals.find(x=>x.name===u.name); if(!g) return false;
+  const idx=f.units.indexOf(u); if(idx>=0) f.units.splice(idx,1);
+  const r=u.r, c=u.c, lvl=u.level||1;   // 拆下的字保留各自等级
+  g.frags.forEach((k,i)=>{
+    f.units.push({id:G.nextId++,kind:'frag',key:k,general:u.name,level:(u.fragLevels&&u.fragLevels[i])||lvl,
+      r,c:c+i,w:1,h:1,dmg:0,cd:0,cdMax:1,range:0,splash:0,atk:'single',
+      noMerge:true,active:false,genPair:null});
+  });
+  if(!f.isAI){ renderField(f,'me'); renderHUD();
+    toast('🔨 '+u.name+' 已拆成单独的字留在场上（保留各自等级），逐个拖走即可（没拖到的保留）'); }
+  return true;
+}
+/* 从合并武将里「拆出某一个字」：移除整体，其余字按原格留在场上（保留等级），
+   返回被拆出那个字的卡（由调用方放到落点）。用于「合并状态下直接拖字」。 */
+function detachCharFromGeneral(f,u,pick){
+  const g=THEME.generals.find(x=>x.name===u.name); if(!g) return null;
+  const lvl=u.level||1, r=u.r, c=u.c;
+  const fl=u.fragLevels||[];
+  const i=f.units.indexOf(u); if(i>=0) f.units.splice(i,1);
+  g.frags.forEach((k,idx)=>{ if(idx===pick) return;
+    f.units.push({id:G.nextId++,kind:'frag',key:k,general:u.name,level:fl[idx]||lvl,
+      r,c:c+idx,w:1,h:1,dmg:0,cd:0,cdMax:1,range:0,splash:0,atk:'single',
+      active:false,genPair:null});
+  });
+  return fragCard(u.name, g.frags[pick], fl[pick]||lvl);
+}
+
+/* ============================ 部署 / 合成 / 换防 ============================ */
+function unitAt(f,r,c){
+  return f.units.find(u=>{
+    const w=u.w||1,h=u.h||1;
+    return r>=u.r&&r<=u.r+h-1&&c>=u.c&&c<=u.c+w-1;
+  });
+}
+function canPlace(f,r,c,w,h){
+  h=h||1;
+  for(let dr=0;dr<h;dr++)for(let dc=0;dc<w;dc++){
+    const rr=r+dr,cc=c+dc,k=kOf(rr,cc);
+    if(cc>=HCOLS||rr>=HROWS||!f.slots[k]||!f.slots[k].unlocked) return false;
+    if(unitAt(f,rr,cc)) return false;
+  }
+  return true;
+}
+function placeUnit(f,card,r,c){
+  let w=1,h=1,dmg=0,range=0,splash=0,cdMax=1,atk='single';
+  if(card.kind==='general'){
+    const g=THEME.generals.find(x=>x.name===card.name), st=unitStat(card);
+    w=g.frags.length; dmg=st.dmg; cdMax=st.cd; range=st.range; splash=st.splash||0; atk=st.atk;
+  } else if(card.kind==='soldier'){
+    const st=unitStat(card); dmg=st.dmg; cdMax=st.cd; range=st.range; splash=st.splash||0; atk=st.atk;
+  }
+  // frag：单独放上战场无战斗功能；相邻同名互补碎片由 recomputeGenerals 合并成武将
+  if(!canPlace(f,r,c,w,h)) return false;
+  const u={id:G.nextId++,kind:card.kind,key:card.key,name:card.name,general:card.general,
+    level:card.level||1,r,c,w,h,dmg,cd:0,cdMax,range,splash,atk,noMerge:false,active:false,genPair:null};
+  f.units.push(u);
+  if(card.kind==='frag') clearNoMerge(f, card.key);   // 重新放下同字 → 允许再次合体
+  recomputeGenerals(f);
+  return u;
+}
+/* 让某名字的碎片恢复「可合体」（玩家主动放下/移动碎片时调用），
+   这样拆开后的字重新凑齐仍能合回武将，并沿用保留的等级 */
+function clearNoMerge(f,name){
+  for(const u of f.units) if(u.kind==='frag'&&u.key===name) u.noMerge=false;
+}
+function applyGeneralStat(u){
+  const st=unitStat(generalCard(u.name,u.level));
+  u.dmg=st.dmg; u.cdMax=st.cd; u.range=st.range; u.splash=st.splash;
+}
+/* 战场上把名字碎片按「左→右」紧挨排成一行，自动合并成一个整体武将（占满名字长度格）；
+   拖走 / 撤下任一字 → 自动拆分回单字（见 splitGeneral）。支持 2 字与 3 字武将。 */
+function recomputeGenerals(f){
+  let formedAny=false, again=true;
+  while(again){
+    again=false;
+    // 同名武将只能有一个：已在场的名字先占位，再合体时跳过（第二套同名碎片只能拆成散字，
+    // 用作「喂养升级」的素材或丢弃，不会再合出第二个同名武将）
+    const taken=new Set();
+    for(const u of f.units) if(u.kind==='general') taken.add(u.name);
+    for(const g of THEME.generals){
+      if(taken.has(g.name)) continue;
+      const L=g.frags.length;
+      for(const u of f.units){
+        if(u.kind!=='frag'||u.noMerge) continue;       // 点击分解出的字不再自动重合并
+        if(u.key!==g.frags[0]) continue;               // 仅从名字首字发起
+        const run=[u]; let ok=true;
+        for(let i=1;i<L;i++){
+          const v=unitAt(f,u.r,u.c+i);
+          if(v&&v.kind==='frag'&&!v.noMerge&&v.key===g.frags[i]) run.push(v);
+          else { ok=false; break; }
+        }
+        if(ok&&run.length===L){
+          const r=u.r,c=u.c;
+          // 保留等级：合体等级取各字等级的最小值；同时记录每个字各自等级（fragLevels），
+          // 拆下/换字再拼回时按各自等级还原，避免高等级字被「最低等级」覆盖而重置。
+          const fragLevels=run.map(x=>x.level||1);
+          let lvl=MAX_LEVEL;
+          for(const x of fragLevels) lvl=Math.min(lvl, x);
+          for(const x of run){ const idx=f.units.indexOf(x); if(idx>=0) f.units.splice(idx,1); }
+          const st=unitStat(generalCard(g.name,lvl));
+          const gu={id:G.nextId++,kind:'general',name:g.name,general:null,key:g.name,
+            level:lvl,fragLevels,r,c,w:L,h:1,dmg:st.dmg,cd:0,cdMax:st.cd,range:st.range,splash:st.splash,
+            atk:'single',noMerge:false,active:false,genPair:null};
+          f.units.push(gu);
+          if(!f.isAI) toast('⚔️ '+g.name+' 合体上阵！'+(lvl>1?('（'+lvl+' 级）'):''));
+          formedAny=true; again=true; break;             // 重新扫描，避免重叠
+        }
+      }
+      if(again) break;
+    }
+  }
+  if(formedAny&&!f.isAI) sfxUp();
+  return formedAny;
+}
+function upgradeUnit(u,silent){
+  if(u.kind!=='soldier'||u.level>=MAX_LEVEL) return false;
+  u.level++; const st=unitStat({kind:'soldier',key:u.key,level:u.level});
+  u.dmg=st.dmg;u.cdMax=st.cd;u.range=st.range;u.splash=st.splash;
+  if(!silent){ sfxUp(); toast(`${u.key} 升到 ${u.level} 级！`); } return true;
+}
+/* 同字 的碎片可「喂养」升级：把任意一张同字碎片拖到另一张上（不论它原本属于哪个武将，
+   例如黄忠的「黄」与黄月英的「黄」也能合并），目标升 1 级，直到 MAX_LEVEL —— 不必先凑成武将 */
+function canUpgradeFrag(a,b){
+  return !!(a&&b&&a.kind==='frag'&&b.kind==='frag'&&
+    a.key===b.key&&
+    (b.level||1)<MAX_LEVEL);
+}
+function cardFromUnit(u){
+  if(u.kind==='general') return generalCard(u.name,u.level);
+  if(u.kind==='frag') return fragCard(u.general,u.key,u.level);
+  return soldierCard(u.key,u.level);
+}
+function removeUnit(f,r,c){ const i=f.units.findIndex(u=>u.r===r&&u.c===c);
+  return i>=0?f.units.splice(i,1)[0]:null; }
+/* 交换两个已放置卡牌的位置（支持不同大小/种类）；任一放不下则整体回滚。
+   宽牌（武将）可左移覆盖落点格，避免「必须正好从落点那一列开始」放不下 */
+function trySwapUnits(f,su,target,silent){
+  const aR=su.r,aC=su.c, bR=target.r,bC=target.c;
+  const aw=su.w||1, ah=su.h||1, bw=target.w||1, bh=target.h||1;
+  const rm=u=>{ const i=f.units.indexOf(u); if(i>=0) f.units.splice(i,1); };
+  rm(su); rm(target);
+  const cols=(center,w)=>{ const out=[];
+    for(let off=0;off<w;off++){ const c=center-off; if(c>=0&&c+w<=HCOLS) out.push(c); }
+    return out; };
+  let done=false;
+  for(const c1 of cols(bC,aw)){
+    su.r=bR; su.c=c1;
+    if(!canPlace(f,bR,c1,aw,ah)) continue;
+    f.units.push(su);
+    for(const c2 of cols(aC,bw)){
+      target.r=aR; target.c=c2;
+      if(canPlace(f,aR,c2,bw,bh)){ f.units.push(target); done=true; break; }
+    }
+    if(done) break;
+    f.units.splice(f.units.indexOf(su),1);
+  }
+  if(!done){
+    su.r=aR; su.c=aC; target.r=bR; target.c=bC;
+    f.units.push(su); f.units.push(target);
+    if(!silent) toast('这两张牌位置不够互换（空间不足）');
+    return false;
+  }
+  recomputeGenerals(f);
+  return true;
+}
+/* 整张互换放不下时的兜底：把场上一张牌与「落点指着武将的那个字」互换位置
+   （牌挪到该字的格子，该字挪到牌原来的格子；武将因此散成单字） */
+function swapUnitWithGeneralChar(f,su,gu,r,c){
+  const pick=Math.max(0,Math.min((gu.w||1)-1, c-gu.c));
+  const sR=su.r, sC=su.c, aR=gu.r, aC=gu.c+pick;
+  const card=detachCharFromGeneral(f,gu,pick);      // 其余字留场，该字原格空出
+  if(!card) return false;
+  const i=f.units.indexOf(su); if(i>=0) f.units.splice(i,1);
+  su.r=aR; su.c=aC;
+  if(!canPlace(f,aR,aC,su.w||1,su.h||1)){           // 牌塞不进该字的格子 → 回滚
+    su.r=sR; su.c=sC; f.units.push(su);
+    if(!placeUnit(f,card,aR,aC)){ const fi=freeHandSlots(); if(fi.length) G.hand[fi[0]]=card; }
+    toast('这两张牌位置不够互换（空间不足）'); return false;
+  }
+  f.units.push(su);
+  if(placeUnit(f,card,sR,sC)){                      // 该字挪到牌原来的格子
+    toast('↔ 与「'+card.key+'」换了位置'); return true;
+  }
+  f.units.splice(f.units.indexOf(su),1);            // 字放不回去 → 整体回滚
+  su.r=sR; su.c=sC; f.units.push(su);
+  if(!placeUnit(f,card,aR,aC)){ const fi=freeHandSlots(); if(fi.length) G.hand[fi[0]]=card; }
+  toast('这两张牌位置不够互换（空间不足）');
+  return false;
+}
+function applyDrop(src,dst){
+  if(!src||!src.card||!dst) return false;
+  const a=src.card;
+  if(dst.type==='discard'){
+    if(src.type==='hand'){
+      if(src.idx<0){ toast('🗑 撤下这个字'); return true; }   // 从武将拖出的悬空字：撤下，不返还
+      G.hand[src.idx]=null; G.me.mantou+=DISCARD_REFUND;
+      toast('🗑 丢弃卡牌，返还 1 馒头'); return true;
+    }
+    if(src.type==='board'){
+      const su=G.me.units.find(u=>u.r===src.r&&u.c===src.c);
+      if(su){ const i=G.me.units.indexOf(su); if(i>=0) G.me.units.splice(i,1); }
+      recomputeGenerals(G.me);
+      toast('🗑 撤下战场上的字'); return true;
+    }
+    return false;
+  }
+  if(dst.type==='hand'){
+    const i=dst.idx;
+    if(!G.handOpen[i]){
+      if(src.type!=='hand'||a.kind!=='token'){ toast('这一排要拖「令」字牌过来才能解锁'); return false; }
+      G.hand[src.idx]=null; G.handOpen[i]=true; toast('🔓 手牌格解锁！多一个放牌位'); return true;
+    }
+    const b=G.hand[i];
+    if(src.type==='hand' && src.idx<0){          // 悬空字：只放进空手牌位，否则交给调用方放回原位
+      if(b===null){ G.hand[i]=a; return true; }
+      return false;
+    }
+    if(src.type==='hand'){
+      if(src.idx===i) return false;
+      if(a.kind==='soldier'&&b&&b.kind==='soldier'&&a.key===b.key&&a.level===b.level&&a.level<MAX_LEVEL){
+        b.level++; G.hand[src.idx]=null; toast(`合成！${b.key} ${b.level} 级`); return true; }
+      // 同武将·同字·同等级的碎片 → 合成升级（不必先凑成武将）
+      if(canUpgradeFrag(a,b)){
+        b.level++; G.hand[src.idx]=null; toast(`合成！${b.general}·${b.key} 升到 ${b.level} 级`); return true; }
+      // 否则两张牌只交换位置
+      G.hand[src.idx]=b; G.hand[i]=a; return true;
+    }
+    if(b===null){ if(a.kind==='frag') clearNoMerge(G.me, a.key); removeUnit(G.me,src.r,src.c); G.hand[i]=a; return true; }
+    // 场上碎片拖回手牌，正好撞上同武将·同字·同等级的碎片 → 也合成升级
+    if(src.type==='board'&&canUpgradeFrag(a,b)){
+      b.level++; removeUnit(G.me,src.r,src.c);
+      toast(`合成！${b.general}·${b.key} 升到 ${b.level} 级`); return true;
+    }
+    // 场上牌拖到占用中的手牌 → 与手牌互换（场上的牌进手牌，手牌的牌落到场上该格）
+    if(src.type==='board'){
+      if(!b || b.kind==='shovel' || b.kind==='token'){
+        toast('手牌这格不是可部署的牌，无法换防'); return false;
+      }
+      const su=G.me.units.find(u=>u.r===src.r&&u.c===src.c);
+      if(!su) return false;
+      const w=(b.kind==='general')?THEME.generals.find(x=>x.name===b.name).frags.length:1;
+      const rr=su.r, cc=su.c;
+      removeUnit(G.me, rr, cc);
+      const cols=[]; for(let off=0;off<w;off++){ const c=cc-off; if(c>=0&&c+w<=HCOLS) cols.push(c); }
+      let placed=false;
+      for(const c of cols){
+        if(canPlace(G.me,rr,c,w,1)&&placeUnit(G.me,b,rr,c)){ placed=true; break; }
+      }
+      if(placed){ G.hand[i]=a; recomputeGenerals(G.me); toast('↔ 换防：'+cardLabel(a)+' 回到手牌'); return true; }
+      if(!placeUnit(G.me,a,rr,cc)){ const fi=freeHandSlots(); if(fi.length) G.hand[fi[0]]=a; }  // 手牌牌放不下：场上牌原位放回
+      return false;
+    }
+    return false;
+  }
+  if(dst.type==='tile'){
+    const {r,c}=dst, f=G.me, k=kOf(r,c), slot=f.slots[k], target=unitAt(f,r,c);
+    if(!slot){
+      if(a.kind==='shovel'){ toast('道路和「斗」不需要解锁'); return false; }
+      return false;
+    }
+    if(!slot.unlocked){
+      if(src.type==='hand'&&a.kind==='shovel'){
+        G.hand[src.idx]=null; slot.unlocked=true; refreshTile('me',k);
+        toast(`🔓 解锁成功！(${TOWER_KEYS.filter(x=>f.slots[x].unlocked).length}/${TOWER_KEYS.length})`);
+        return true;
+      }
+      toast('这格还锁着，拖一张「铲」字牌过来解锁'); return false;
+    }
+    if(src.type==='hand'){
+      if(a.kind==='shovel'||a.kind==='token'){
+        toast(a.kind==='shovel'?'「铲」要拖到 🔒 格子上':'「令」要拖到锁着的手牌格上'); return false;
+      }
+      // 同字同级 → 合成升级
+      if(target&&target.kind==='soldier'&&a.kind==='soldier'&&
+         target.key===a.key&&target.level===a.level&&target.level<MAX_LEVEL){
+        if(upgradeUnit(target)){ G.hand[src.idx]=null; return true; }
+        return false;
+      }
+      // 已成武将：拖来名字中任一字 → 升级（只需一个字，不必全名；黄忠/黄月英共用的「黄」也能升级对应武将）；其余不允许覆盖武将
+      if(target&&target.kind==='general'){
+        if(a.kind==='frag'&&target.name.includes(a.key)){
+          if(target.level>=MAX_LEVEL){ toast(target.name+' 已满级（'+MAX_LEVEL+' 级）'); return false; }
+          target.level++;
+          // 升一级 → 各字等级同步抬到至少新等级，保证 min(fragLevels)=新等级（拆开后不丢级）
+          if(target.fragLevels) target.fragLevels=target.fragLevels.map(l=>Math.max(l,target.level));
+          applyGeneralStat(target);
+          G.hand[src.idx]=null; toast('⚔️ '+target.name+' 升到 '+target.level+' 级！'); return true;
+        }
+        toast('武将格只能放对应名字的字来升级'); return false;
+      }
+      // 同武将·同字·同等级的碎片 → 合成升级
+      if(target&&canUpgradeFrag(a,target)){
+        target.level++; G.hand[src.idx]=null;
+        toast(`合成！${target.general}·${target.key} 升到 ${target.level} 级`); return true;
+      }
+      const w=a.kind==='general'?(THEME.generals.find(x=>x.name===a.name).frags.length):1;
+      if(target){
+        if(src.idx<0) return false;      // 从武将拖出的悬空字不参与换防（交给 dropLiftedChar 处理）
+        // 直接换防：旧牌回到原手牌位，一步完成
+        const rr=target.r,cc=target.c,old=cardFromUnit(target);
+        const removed=removeUnit(f,rr,cc);
+        if(removed&&canPlace(f,rr,cc,w,1)&&placeUnit(f,a,rr,cc)){
+          G.hand[src.idx]=old; toast(`↔ 换防：${cardLabel(old)} 回到手牌`); return true;
+        }
+        if(removed) f.units.push(removed);
+        toast('武将需横向 '+w+' 个已解锁空格'); return false;
+      }
+      if(!canPlace(f,r,c,w,1)){
+        toast('武将需横向 '+w+' 个已解锁空格'); return false;
+      }
+      if(placeUnit(f,a,r,c)){ G.hand[src.idx]=null; return true; }
+      return false;
+    }
+    // 场上 -> 场上
+    if(src.r===r&&src.c===c) return false;
+    const su=f.units.find(u=>u.r===src.r&&u.c===src.c); if(!su) return false;
+    if(target){
+      // 同兵种同等级 → 合成升级（保留核心玩法）
+      if(target.kind==='soldier'&&su.kind==='soldier'&&target.key===su.key&&
+         target.level===su.level&&target.level<MAX_LEVEL){
+        removeUnit(f,src.r,src.c); return upgradeUnit(target); }
+      // 同武将·同字·同等级的碎片 → 合成升级（不必先凑成武将）
+      if(canUpgradeFrag(cardFromUnit(su), cardFromUnit(target))){
+        removeUnit(f,src.r,src.c); target.level++;
+        toast(`合成！${target.general}·${target.key} 升到 ${target.level} 级`); return true;
+      }
+      // 其余情况 → 交换两张牌的位置
+      if(target.kind==='general'){
+        // 拖到武将上：**永远字级换位**——和指针指着的那一个字换（不做整张互换）
+        return swapUnitWithGeneralChar(f, su, target, r, c);
+      }
+      return trySwapUnits(f, su, target);
+    }
+    if(!canPlace(f,r,c,su.w,su.h)) return false;
+    su.r=r;su.c=c;
+    if(su.kind==='frag') clearNoMerge(f, su.key);   // 主动移动碎片 → 允许重新合体
+    recomputeGenerals(f);
+    return true;
+  }
+  return false;
+}
+
+/* ============================ 渲染 ============================ */
+function ziClass(c){
+  let s='zi';
+  if(c.kind==='frag') s+=' frag';
+  else if(c.kind==='general') s+=' general';
+  else if(c.kind==='shovel') s+=' shovel';
+  else if(c.kind==='token') s+=' token';
+  if((c.kind==='soldier'||c.kind==='frag')&&c.level>=3) s+=' lv'+Math.min(5,c.level);
+  return s;
+}
+const TOOL_ICON={
+  shovel:`<svg viewBox="0 0 32 32" class="tool-svg">
+    <rect x="14.3" y="3" width="3.4" height="14.5" rx="1.7" fill="#b9813f"/>
+    <rect x="11.6" y="2.4" width="9" height="4" rx="2" fill="#9a6531"/>
+    <path d="M10.4 16.5 Q16 19.6 21.6 16.5 L23.1 26 Q16 30.4 8.9 26 Z" fill="#cdd6db" stroke="#8b99a1" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M10.4 16.5 Q16 19.6 21.6 16.5" fill="none" stroke="#eef3f6" stroke-width="1.3"/>
+    <path d="M16 18.4 L16 24.6" stroke="#aab5bc" stroke-width="1" opacity=".6"/></svg>`,
+  token:`<svg viewBox="0 0 32 32" class="tool-svg">
+    <circle cx="16" cy="3.6" r="2.1" fill="none" stroke="#c8553a" stroke-width="1.7"/>
+    <path d="M16 5.6 q-3 2 -3 5.1" fill="none" stroke="#d96a4f" stroke-width="1.8" stroke-linecap="round"/>
+    <rect x="7.5" y="9.4" width="17" height="19.2" rx="3.2" fill="#d2a857" stroke="#8a6a2a" stroke-width="1.7"/>
+    <rect x="10.1" y="12" width="11.8" height="14" rx="2.4" fill="none" stroke="#7d5e22" stroke-width="1.2" opacity=".6"/>
+    <path d="M16 13.2 L19.1 16.7 L16 20.2 L12.9 16.7 Z" fill="#7d5e22" opacity=".9"/></svg>`
+};
+function ziHTML(c){
+  if(c.kind==='soldier') return `<span>${c.key}</span><span class="lv">${c.level}</span>`;
+  if(c.kind==='frag') return `<span>${c.key}</span>`+((c.level||1)>1?`<span class="lv">${c.level}</span>`:'');
+  if(c.kind==='general') return `<span>${c.name}</span><span class="lv">${c.level||1}</span>`;
+  if(c.kind==='shovel') return `<span class="tool">${TOOL_ICON.shovel}</span>`;
+  return `<span class="tool">${TOOL_ICON.token}</span>`;
+}
+function decorateZi(node,c,unit){
+  node.style.setProperty('--tc',cardTone(c));
+  const key=(c.kind==='general'?c.name:c.key);
+  node.dataset.key=key;
+  if(unit) node.title=`${cardLabel(c)} · 射程 ${unit.range.toFixed(1)} · 攻 ${Math.round(unit.dmg)}`;
+  else if(c.kind==='soldier'||c.kind==='general') node.title=`${cardLabel(c)} · 射程 ${unitStat(c).range.toFixed(1)}`;
+}
+function renderHand(){
+  el.handRow0.innerHTML=''; el.handRow1.innerHTML=''; el.hslots=[];
+  for(let row=0;row<HAND_ROWS;row++){
+    const host=row===0?el.handRow0:el.handRow1;
+    for(let col=0;col<HAND_COLS;col++){
+      const i=row*HAND_COLS+col, open=G.handOpen[i], card=G.hand[i];
+      const d=document.createElement('div');
+      d.className='hslot'+(open?'':' locked'); d.dataset.hand=i; d.dataset.open=open?'1':'0';
+      if(!open){ d.innerHTML='<span class="lk">🔒</span><span class="lk-t">'+TOOL_ICON.token+'</span>'; }
+      else if(card){
+        const z=document.createElement('div'); z.className=ziClass(card); z.innerHTML=ziHTML(card);
+        decorateZi(z,card,null);
+        d.appendChild(z);
+        if(card.kind==='token'){
+          z.style.cursor='pointer';
+          let lt=0;
+          z.addEventListener('pointerup',e=>{
+            if(Date.now()<G.suppressClick) return;
+            const now=Date.now();
+            if(now-lt<320){ lt=0; unlockNextHandSlot(); }
+            else { lt=now; setTimeout(()=>{ if(lt===now) toast('双击「令」即可自动解锁一个手牌格'); },330); }
+          });
+          z.addEventListener('dblclick',e=>{ e.preventDefault(); unlockNextHandSlot(); });
+        } else {
+          z.addEventListener('pointerdown',e=>startDrag(e,{type:'hand',idx:i,card}));
+        }
+      }
+      host.appendChild(d); el.hslots[i]=d;
+    }
+  }
+}
+/* 拿刀火柴人（无文字）：身体用 --mc 按敌人类型着色，右臂持刀 */
+/* 小怪模型：上半场（对手阵地）用「卒」，下半场（我方阵地）用「兵」 */
+const FOE_CHAR={ai:'卒',me:'兵'};
+function renderField(f,which){
+  const host=which==='me'?el.halfMe:el.halfAI;
+  const seen=new Set();
+  for(const u of f.units){
+    seen.add(u.id);
+    let d=f._unitEls.get(u.id);
+    // 按下武将 → 该武将临时进入「分解预览」（视觉上拆成 N 个独立字格，模型不变）
+    const split=(u.kind==='general'&&G.press&&G.press.id===u.id)?G.press.pick:-1;
+    const ucls='zi unit'+(u.w===3?' w3':(u.w===2?' w2':''))+(u.kind==='general'?' general':'')+(u.kind==='frag'?' frag':'')+
+      (split>=0?' split':'')+
+      ((u.kind==='soldier'||u.kind==='frag')&&u.level>=3?' lv'+Math.min(5,u.level):'');
+    const htmlOf=()=>{
+      if(split>=0){
+        const g=THEME.generals.find(x=>x.name===u.name)||{frags:[u.name]};
+        return g.frags.map((k,i)=>`<span class="c${i===split?' hl':''}">${k}`+
+          ((u.level||1)>1?`<span class="lv">${u.level}</span>`:'')+`</span>`).join('');
+      }
+      if(u.kind==='frag') return `<span>${u.key}</span>`+((u.level||1)>1?`<span class="lv">${u.level}</span>`:'');
+      if(u.kind==='general') return `<span>${u.name}</span><span class="lv">${u.level}</span>`;
+      return `<span>${u.key}</span><span class="lv">${u.level}</span>`;
+    };
+    const key=(split>=0?('s'+split):'n')+':'+(u.level||1);
+    if(!d){
+      d=document.createElement('div'); d.className=ucls; d.innerHTML=htmlOf();
+      if(u.kind==='general') decorateZi(d,cardFromUnit(u),u);
+      else if(u.kind==='frag') decorateZi(d,fragCard(u.general,u.key,u.level),null);
+      else decorateZi(d,cardFromUnit(u),u);
+      d.dataset.lv=key;
+      if(!f.isAI) d.addEventListener('pointerdown',e=>startDrag(e,{type:'board',r:u.r,c:u.c,card:cardFromUnit(u)}));
+      host.appendChild(d); f._unitEls.set(u.id,d);
+    } else {
+      if(d.className!==ucls) d.className=ucls;
+      // 等级变化 / 进入或退出分解预览 → 重建内容
+      if(d.dataset.lv!==key){ d.innerHTML=htmlOf(); d.dataset.lv=key; }
+    }
+    const p=disp(f.isAI,u.r,u.c);
+    d.style.width=`calc(var(--cell) * ${u.w||1} - 3px)`;
+    d.style.height=`calc(var(--cell) * ${u.h||1} - 3px)`;
+    d.style.left=((p.dc+(u.w||1)/2)/HCOLS*100)+'%';
+    d.style.top=((p.dr+(u.h||1)/2)/HROWS*100)+'%';
+  }
+  for(const [id,d] of f._unitEls){ if(!seen.has(id)){ d.remove(); f._unitEls.delete(id); } }
+  const fs=new Set();
+  for(const foe of f.foes){
+    fs.add(foe.id);
+    let d=f._foeEls.get(foe.id);
+    if(!d){
+      d=document.createElement('div'); d.className='foe t'+foe.type+(foe.boss?' boss':'');
+      d.innerHTML=`<div class="mon"><span class="monz">${f.isAI?FOE_CHAR.ai:FOE_CHAR.me}</span></div><div class="fhp"><i></i></div>`;
+      host.appendChild(d); f._foeEls.set(foe.id,d);
+    }
+    const pt=pointAt(foe.prog), p=disp(f.isAI,pt.y,pt.x);
+    d.style.left=((p.dc+0.5)/HCOLS*100)+'%';
+    d.style.top=((p.dr+0.5)/HROWS*100)+'%';
+    /* 小怪是「一条密集兵流」（彼此只差几个像素），纯叠字会糊成一团；
+       按 id 分三条道做一点横向错位，看起来像列队行军而不是一坨墨 */
+    d.style.marginTop=(((foe.id%3)-1)*0.085*G.cell)+'px';
+    const bar=d.querySelector('.fhp>i'); if(bar) bar.style.width=Math.max(0,foe.hp/foe.maxHp*100)+'%';
+    d.classList.toggle('hurt',foe.hp<foe.maxHp-0.01);
+    // 掉血数字：本帧受到的总伤害冒一个浮动数字（已死亡的不显示）
+    if(foe._dmg>0&&!foe.dead){
+      const num=document.createElement('div'); num.className='dmg-num';
+      num.textContent=Math.round(foe._dmg); d.appendChild(num);
+      num.addEventListener('animationend',()=>num.remove());
+      foe._dmg=0;
+    }
+  }
+  for(const [id,d] of f._foeEls){ if(!fs.has(id)){ d.remove(); f._foeEls.delete(id); } }
+}
+/* 血量不再放顶栏，直接显示在各自「斗」字头上 */
+function paintBaseHp(){
+  if(!el.baseHp) return;
+  const put=(node,hp)=>{ if(!node) return; node.textContent=Math.ceil(hp); node.classList.toggle('low',hp<=16); };
+  put(el.baseHp.me,G.me.hp); put(el.baseHp.ai,G.ai.hp);
+}
+function renderHUD(){
+  el.mantou.textContent=Math.floor(G.me.mantou);
+  el.shovelText.textContent=countCard('shovel')+' 张';
+  el.slotText.textContent=G.handOpen.filter(Boolean).length+'/'+HAND_SIZE+' 格';
+  el.waveText.textContent=`第 ${G.level} 关 · ${G.wave} / ${TOTAL_WAVES} 波`;
+  paintBaseHp();
+}
+
+/* ============================ 射程圈 ============================ */
+function showRange(r,c,w,range){
+  const ring=el.rangeRing, t=el.tiles.me[kOf(r,c)];
+  if(!ring||!t) return;
+  const tr=t.getBoundingClientRect(), ar=el.arena.getBoundingClientRect();
+  const cx=tr.left-ar.left+tr.width/2+(w-1)*(tr.width+2)/2;
+  const cy=tr.top-ar.top+tr.height/2;
+  const m=halfMetrics('me'), rad=range*m.cw;
+  ring.style.left=cx+'px'; ring.style.top=cy+'px';
+  ring.style.width=(rad*2)+'px'; ring.style.height=(rad*2)+'px';
+  el.rangeLabel.textContent='射程 '+range.toFixed(1);
+  ring.hidden=false;
+  for(const k in el.tiles.me){
+    const d=el.tiles.me[k]; if(!d) continue;
+    const rr=+d.dataset.r,cc=+d.dataset.c;
+    const dist=Math.hypot(cc-(c+(w-1)/2),rr-r);
+    d.classList.toggle('in-range',dist<=range&&ROAD_KEYS.has(kOf(rr,cc)));
+  }
+}
+function clearRange(){
+  if(el.rangeRing) el.rangeRing.hidden=true;
+  for(const k in el.tiles.me){ const d=el.tiles.me[k]; if(d) d.classList.remove('in-range'); }
+}
+
+/* ============================ 攻击特效 ============================ */
+const BASE_T='translate(-50%,-50%)';
+function kf(list){ return list.map(f=>{ const o={}; for(const p in f) o[p]=f[p];
+  o.transform=BASE_T+' '+(f.transform||''); return o; }); }
+const UNIT_ATK={
+  '刀':kf([{transform:'scale(1) rotate(0deg)'},{transform:'scale(1.25) rotate(-30deg)',offset:.4},{transform:'scale(1.1) rotate(-12deg)',offset:.7},{transform:'scale(1) rotate(0deg)'}]),
+  '枪':kf([{transform:'scale(1)'},{transform:'translateX(11px) scaleX(1.22)',offset:.4},{transform:'translateX(2px) scale(1)',offset:.8},{transform:'scale(1)'}]),
+  '弓':kf([{transform:'scale(1)'},{transform:'translateY(-3px) scale(1.16) translateX(-3px)',offset:.4},{transform:'scale(1)'}]),
+  '骑':kf([{transform:'scale(1)'},{transform:'translateX(15px) scale(1.2)',offset:.45},{transform:'translateX(2px) scale(1)',offset:.8},{transform:'scale(1)'}]),
+  '赵云':kf([{transform:'scale(1)'},{transform:'translateX(8px) scale(1.16)',offset:.4},{transform:'scale(1)'}]),
+  '张飞':kf([{transform:'scale(1)'},{transform:'scale(1.34) rotate(4deg)',offset:.4},{transform:'scale(1)'}]),
+  '关羽':kf([{transform:'rotate(0deg)'},{transform:'rotate(-20deg) scale(1.22)',offset:.45},{transform:'rotate(0deg)'}]),
+  '黄忠':kf([{transform:'scale(1)'},{transform:'translateY(-3px) scale(1.2)',offset:.45},{transform:'scale(1)'}]),
+  '马超':kf([{transform:'scale(1)'},{transform:'translateX(13px) scale(1.2)',offset:.45},{transform:'scale(1)'}]),
+  '刘备':kf([{transform:'scale(1)'},{transform:'scale(1.16) rotate(-4deg)',offset:.45},{transform:'scale(1)'}]),
+  '诸葛亮':kf([{transform:'scale(1)'},{transform:'scale(1.2) rotate(16deg)',offset:.45},{transform:'scale(1)'}]),
+  '黄月英':kf([{transform:'scale(1)'},{transform:'scale(1.18) rotate(-10deg)',offset:.45},{transform:'scale(1)'}])
+};
+function anim(node,frames,dur,delay){
+  if(!node||typeof node.animate!=='function') return;
+  try{ node.animate(frames,{duration:dur,delay:delay||0,easing:'ease-out',fill:'forwards'}); }catch(e){}
+}
+function fxNode(host,cls,x,y,styles){
+  if(!host||(host.__fxCount||0)>80) return null;
+  const d=document.createElement('div'); d.className='fx '+cls;
+  d.style.left=x+'px'; d.style.top=y+'px';
+  if(styles) for(const p in styles) d.style[p]=styles[p];
+  host.appendChild(d); host.__fxCount=(host.__fxCount||0)+1; return d;
+}
+function fxRun(d,frames,dur,delay){
+  if(!d) return;
+  anim(d,frames,dur,delay);
+  setTimeout(()=>{ const h=d.parentElement;
+    if(h) h.__fxCount=Math.max(0,(h.__fxCount||1)-1); d.remove(); },dur+(delay||0)+45);
+}
+function fxHit(host,p,color){
+  const d=fxNode(host,'fx-hit',p.x,p.y,{background:`radial-gradient(circle,#fff,${color} 40%,transparent 72%)`});
+  fxRun(d,[{transform:BASE_T+' scale(.3)',opacity:1},{transform:BASE_T+' scale(1.7)',opacity:0}],260);
+}
+function fxKill(host,p){
+  for(let i=0;i<5;i++){
+    const d=fxNode(host,'fx-spark',p.x,p.y,{});
+    const a=Math.random()*Math.PI*2, rr=16+Math.random()*22;
+    fxRun(d,[{transform:BASE_T+' translate(0,0) scale(1)',opacity:1},
+      {transform:`${BASE_T} translate(${Math.cos(a)*rr}px,${Math.sin(a)*rr}px) scale(.2)`,opacity:0}],340);
+  }
+}
+function fxLine(host,a,dx,dy,ang,len,cls,delay,color){
+  const d=fxNode(host,cls||'fx-line',a.x,a.y,{width:Math.max(8,len)+'px'});
+  if(!d) return;
+  if(color) d.style.background=`linear-gradient(90deg,${color},transparent)`;
+  const rot=`rotate(${ang}rad)`;
+  fxRun(d,[{transform:`translate(0,-50%) ${rot} scaleX(0)`,opacity:0},
+    {transform:`translate(0,-50%) ${rot} scaleX(1)`,opacity:1,offset:.35},
+    {transform:`translate(0,-50%) ${rot} scaleX(1.02)`,opacity:0}],240,delay);
+}
+function spawnAttackFx(f,which,u,foe){
+  if(which==='me') sfxAttack(u);   // 只给我方卡牌配打击音，避免两边同时响成噪音
+  const host=which==='me'?el.halfMe:el.halfAI;
+  const a=unitPx(f,which,u), b=foePx(f,which,foe);
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);
+  const isGen=(u.kind==='general')||(u.active&&u.general), key=isGen?(u.name||u.general):u.key,
+    deg=ang*180/Math.PI, m=halfMetrics(which);
+  let hitColor='#ffd28a';
+  if(isGen){
+    if(key==='赵云'){
+      hitColor='#bfe0ff';
+      for(let i=0;i<3;i++){
+        const off=(i-1)*0.10;
+        fxLine(host,a,dx,dy,ang+off,len,'fx-line',i*65,'rgba(190,225,255,.98)');
+      }
+      const flash=fxNode(host,'fx-hit',b.x,b.y,{});
+      fxRun(flash,[{transform:BASE_T+' scale(.2)',opacity:0},{transform:BASE_T+' scale(1.6)',opacity:1,offset:.5},
+        {transform:BASE_T+' scale(2)',opacity:0}],360,120);
+    } else if(key==='张飞'){
+      hitColor='#ff8a6a';
+      const w=fxNode(host,'fx-wave',b.x,b.y,{width:(u.range*m.cw*1.1)+'px',height:(u.range*m.cw*1.1)+'px'});
+      fxRun(w,[{transform:BASE_T+' scale(.15)',opacity:1},{transform:BASE_T+' scale(1)',opacity:0}],420);
+      host.classList.remove('shake'); if(host.offsetWidth!==undefined) void host.offsetWidth; host.classList.add('shake');
+      setTimeout(()=>host.classList.remove('shake'),260);
+    } else if(key==='关羽'){
+      hitColor='#9fe0a0';
+      const g=fxNode(host,'fx-guan',b.x,b.y,{});
+      fxRun(g,[{transform:`${BASE_T} rotate(${deg+90}deg) scaleX(.2)`,opacity:0},
+        {transform:`${BASE_T} rotate(${deg+90}deg) scaleX(1.2)`,opacity:1,offset:.4},
+        {transform:`${BASE_T} rotate(${deg+90}deg) scaleX(1.4)`,opacity:0}],300);
+    } else if(key==='黄忠'){
+      hitColor='#ffd28a';
+      const arrow=fxNode(host,'fx-arrow2',a.x,a.y,{});
+      fxRun(arrow,[{transform:`${BASE_T} translate(0,0) rotate(${ang}rad) scale(.7)`,opacity:1},
+        {transform:`${BASE_T} translate(${dx}px,${dy}px) rotate(${ang}rad)`,opacity:0}],320);
+      const tip=fxNode(host,'fx-hit',b.x,b.y,{width:'16px',height:'16px'});
+      fxRun(tip,[{transform:BASE_T+' scale(.4)',opacity:1},{transform:BASE_T+' scale(1.7)',opacity:0}],220,120);
+    } else if(key==='马超'){
+      hitColor='#dfe7ff';
+      const beam=fxNode(host,'fx-thrust',a.x,a.y,{width:Math.max(10,len)+'px',background:'linear-gradient(90deg,#eef3ff,#cdd9ff)'});
+      fxRun(beam,[{transform:`translate(0,-50%) rotate(${ang}rad) scaleX(0)`,opacity:0},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1)`,opacity:1,offset:.4},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1.05)`,opacity:0}],220);
+      for(let i=0;i<3;i++){ const sp=fxNode(host,'fx-spark',b.x,b.y,{});
+        const a2=Math.random()*Math.PI*2,rr=12+Math.random()*16;
+        fxRun(sp,[{transform:BASE_T+' translate(0,0) scale(1)',opacity:1},
+          {transform:`${BASE_T} translate(${Math.cos(a2)*rr}px,${Math.sin(a2)*rr}px) scale(.2)`,opacity:0}],300,i*40); }
+    } else if(key==='诸葛亮'){
+      hitColor='#a8c8ff';
+      const rune=fxNode(host,'fx-rune',b.x,b.y,{width:(u.splash*m.cw*2.4)+'px',height:(u.splash*m.cw*2.4)+'px'});
+      fxRun(rune,[{transform:BASE_T+' rotate(0deg) scale(.2)',opacity:1},
+        {transform:BASE_T+' rotate(220deg) scale(1)',opacity:0}],520);
+      for(let i=0;i<3;i++){ const off=(i-1)*0.18;
+        fxLine(host,a,dx,dy,ang+off,len,'fx-line',i*55,'rgba(170,200,255,.95)'); }
+    } else if(key==='黄月英'){
+      hitColor='#ffc0e0';
+      const nova=fxNode(host,'fx-nova',b.x,b.y,{width:(u.splash*m.cw*2.2)+'px',height:(u.splash*m.cw*2.2)+'px'});
+      fxRun(nova,[{transform:BASE_T+' scale(.15)',opacity:1},{transform:BASE_T+' scale(1)',opacity:0}],440);
+      for(let i=0;i<4;i++){ const sp=fxNode(host,'fx-spark',b.x,b.y,{});
+        const a2=Math.random()*Math.PI*2,rr=10+Math.random()*22;
+        fxRun(sp,[{transform:BASE_T+' translate(0,0) scale(1)',opacity:1},
+          {transform:`${BASE_T} translate(${Math.cos(a2)*rr}px,${Math.sin(a2)*rr}px) scale(.2)`,opacity:0}],340,i*50); }
+    } else {
+      hitColor='#ffe0a0';
+      const em=fxNode(host,'fx-rune',b.x,b.y,{width:(u.range*m.cw*1.2)+'px',height:(u.range*m.cw*1.2)+'px',
+        borderColor:'rgba(255,210,120,.9)',boxShadow:'0 0 18px rgba(255,200,110,.7),inset 0 0 18px rgba(255,200,110,.4)'});
+      fxRun(em,[{transform:BASE_T+' rotate(0deg) scale(.2)',opacity:1},{transform:BASE_T+' rotate(200deg) scale(1)',opacity:0}],520);
+      for(let i=0;i<3;i++){ const mo=fxNode(host,'fx-mote',b.x,b.y,{});
+        const a2=Math.random()*Math.PI*2,rr=14+Math.random()*20;
+        fxRun(mo,[{transform:BASE_T+' translate(0,0) scale(1)',opacity:1},
+          {transform:`${BASE_T} translate(${Math.cos(a2)*rr}px,${Math.sin(a2)*rr}px) scale(.2)`,opacity:0}],360,i*60); }
+    }
+    fxHit(host,b,hitColor); return;
+  }
+  switch(key){
+    case '刀':{
+      const blade=fxNode(host,'fx-blade',a.x,a.y,{width:Math.min(len,70)+'px'});
+      fxRun(blade,[{transform:`translate(0,-50%) rotate(${ang-.6}rad) scaleX(.2)`,opacity:0},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1)`,opacity:1,offset:.4},
+        {transform:`translate(0,-50%) rotate(${ang+.5}rad) scaleX(1.1)`,opacity:0}],240);
+      const slash=fxNode(host,'fx-slash',b.x,b.y,{});
+      fxRun(slash,[{transform:BASE_T+' rotate(-20deg) scale(.5)',opacity:0},
+        {transform:BASE_T+' rotate(30deg) scale(1.2)',opacity:1,offset:.45},
+        {transform:BASE_T+' rotate(65deg) scale(.55)',opacity:0}],240,60);
+      break; }
+    case '枪':{
+      // 直线贯穿：光束延伸至整条射程，末端带穿刺点
+      const beamLen=Math.max(len,u.range*m.cw*0.9);
+      const beam=fxNode(host,'fx-thrust',a.x,a.y,{width:beamLen+'px'});
+      fxRun(beam,[{transform:`translate(0,-50%) rotate(${ang}rad) scaleX(0)`,opacity:0},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1)`,opacity:1,offset:.4},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1.05)`,opacity:0}],220);
+      const tip=fxNode(host,'fx-hit',b.x,b.y,{width:'14px',height:'14px'});
+      fxRun(tip,[{transform:BASE_T+' scale(.4)',opacity:1},{transform:BASE_T+' scale(1.6)',opacity:0}],200,80);
+      break; }
+    case '弓':{
+      const bow=fxNode(host,'fx-bow',a.x,a.y,{});
+      fxRun(bow,[{transform:`translate(-50%,-50%) rotate(${ang}rad) scale(.8)`,opacity:0},
+        {transform:`translate(-50%,-50%) rotate(${ang}rad) scale(1.15)`,opacity:1,offset:.5},
+        {transform:`translate(-50%,-50%) rotate(${ang}rad) scale(.8)`,opacity:0}],260);
+      const arrow=fxNode(host,'fx-arrow2',a.x,a.y,{});
+      fxRun(arrow,[{transform:`${BASE_T} translate(0,0) rotate(${ang}rad)`,opacity:1},
+        {transform:`${BASE_T} translate(${dx*.5}px,${dy*.5-10}px) rotate(${ang-.18}rad)`,opacity:1,offset:.5},
+        {transform:`${BASE_T} translate(${dx}px,${dy}px) rotate(${ang}rad)`,opacity:0}],340);
+      break; }
+    case '骑':{
+      const swing=fxNode(host,'fx-swing',b.x,b.y,{});
+      fxRun(swing,[{transform:BASE_T+' rotate(120deg) scale(.5)',opacity:0},
+        {transform:BASE_T+' rotate(40deg) scale(1.25)',opacity:1,offset:.45},
+        {transform:BASE_T+' rotate(-30deg) scale(.55)',opacity:0}],280);
+      const streak=fxNode(host,'fx-thrust',a.x,a.y,{width:Math.max(10,len*0.8)+'px',height:'3px',
+        background:'linear-gradient(90deg,rgba(255,210,140,.9),transparent)'});
+      fxRun(streak,[{transform:`translate(0,-50%) rotate(${ang}rad) scaleX(0)`,opacity:0},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1)`,opacity:.9,offset:.4},
+        {transform:`translate(0,-50%) rotate(${ang}rad) scaleX(1.05)`,opacity:0}],240);
+      for(let i=0;i<3;i++){ const d2=fxNode(host,'fx-dust',a.x+dx*0.2,a.y+dy*0.2,{});
+        fxRun(d2,[{transform:BASE_T+' scale(1)',opacity:.7},{transform:BASE_T+' scale(2.4)',opacity:0}],300,i*60); }
+      break; }
+  }
+  fxHit(host,b,hitColor);
+}
+function flashUnit(f,u){
+  const d=f._unitEls.get(u.id); if(!d) return;
+  anim(d,UNIT_ATK[d.dataset.key]||UNIT_ATK['刀'],240);
+}
+function flashFoe(f,foe){
+  const d=f._foeEls.get(foe.id); if(!d) return;
+  anim(d,kf([{transform:'scale(1)'},{transform:'scale(1.25)',offset:.35},{transform:'scale(1)'}]),180);
+}
+
+/* ============================ 拖拽 ============================ */
+let dragGhost=null;
+function startDrag(e,src){
+  if(!src||!src.card) return;
+  if(!G.running||G.paused||G.over){ toast('先点「开始游戏」'); return; }
+  // 合成武将：按下就进入「分解预览」（视觉上拆成 N 个独立字格），
+  // 松手不动 → 恢复成整体；按住某个字拖出 → 拆下该字；拖到别的牌上 → 整张互换
+  if(src.type==='board'&&src.card.kind==='general'){
+    const u=G.me.units.find(x=>x.r===src.r&&x.c===src.c&&x.kind==='general');
+    if(!u){ e.preventDefault(); return; }
+    const gg=THEME.generals.find(x=>x.name===u.name);
+    let pick=0;
+    const de=G.me._unitEls.get(u.id);
+    if(de){ const rc=de.getBoundingClientRect(); const cw=rc.width/gg.frags.length;
+      if(cw>0) pick=Math.max(0,Math.min(gg.frags.length-1, Math.floor((e.clientX-rc.left)/cw))); }
+    src={ type:'lift', card:fragCard(u.name,gg.frags[pick],u.level||1),
+      origR:u.r, origC:u.c, pick, generalName:u.name, unitId:u.id, gw:gg.frags.length,
+      moved:false, startX:e.clientX, startY:e.clientY };
+    G.press={id:u.id, pick, name:u.name};      // 按下 → 立即分解预览
+    renderField(G.me,'me');
+    if(!G.hintLift){ G.hintLift=true;
+      toast('👆 按住哪个字就只动哪个字：拖到空格＝挪走，拖到同武将另一个字上＝两字换位，拖到别的牌上＝和它换位'); }
+  }
+  e.preventDefault();
+  if(src.type!=='lift') makeGhost(src.card);   // 武将按下时先只看分解预览，真正拖起来才出幽灵牌
+  G.drag=src; moveGhost(e.clientX,e.clientY);
+  window.addEventListener('pointermove',onDragMove);
+  window.addEventListener('pointerup',onDragEnd);
+  window.addEventListener('pointercancel',onDragEnd);
+}
+function makeGhost(card){
+  if(dragGhost) return;
+  const g=document.createElement('div'); g.className=ziClass(card);
+  g.style.cssText='position:fixed;pointer-events:none;z-index:90;left:0;top:0;opacity:.95;'+
+    'width:50px;height:54px;font-size:25px;box-shadow:0 8px 20px rgba(40,20,30,.45)';
+  g.innerHTML=ziHTML(card); decorateZi(g,card,null);
+  document.body.appendChild(g); dragGhost=g;
+}
+function moveGhost(x,y){ if(dragGhost) dragGhost.style.transform=`translate(${x-25}px,${y-27}px) rotate(-4deg)`; }
+function clearOver(){ document.querySelectorAll('.over,.drop,.in-range').forEach(d=>
+  d.classList.remove('over','drop','in-range','bad','good')); }
+function inRect(rc,x,y){ return rc&&x>=rc.left&&x<=rc.right&&y>=rc.top&&y<=rc.bottom; }
+function dropTargetAt(x,y){
+  if(inRect(el.camp.getBoundingClientRect(),x,y)) return {type:'discard'};
+  if(inRect(el.hand.getBoundingClientRect(),x,y)){
+    for(let i=0;i<HAND_SIZE;i++){
+      const d=el.hslots[i];
+      if(d&&inRect(d.getBoundingClientRect(),x,y)) return {type:'hand',idx:i,locked:!G.handOpen[i]};
+    }
+    return null;
+  }
+  if(inRect(el.halfMe.getBoundingClientRect(),x,y)){
+    for(const k in el.tiles.me){
+      const d=el.tiles.me[k];
+      if(inRect(d.getBoundingClientRect(),x,y)) return {type:'tile',r:+d.dataset.r,c:+d.dataset.c};
+    }
+  }
+  return null;
+}
+function onDragMove(e){
+  if(!G.drag) return;
+  if(G.drag.type==='lift' && !G.drag.moved &&
+     Math.hypot(e.clientX-G.drag.startX, e.clientY-G.drag.startY)>6) G.drag.moved=true;
+  if(G.drag.type==='lift' && G.drag.moved && !dragGhost) makeGhost(G.drag.card);
+  moveGhost(e.clientX,e.clientY); clearOver();
+  const t=dropTargetAt(e.clientX,e.clientY), src=G.drag, a=src.card;
+  clearRange();
+  if(!t) return;
+  if(t.type==='discard'){ el.camp.classList.add('drop'); return; }
+  if(t.type==='hand'){
+    if(t.idx!==src.idx||src.type!=='hand'){
+      const d=el.hslots[t.idx]; if(d) d.classList.add('over');
+      if(t.locked){ d.classList.add(a.kind==='token'?'good':'bad'); }
+    }
+    return;
+  }
+  if(t.type==='tile'){
+    const d=el.tiles.me[kOf(t.r,t.c)], f=G.me, slot=f.slots[kOf(t.r,t.c)];
+    if(d) d.classList.add('over');
+    if(src.type==='lift'){
+      // 悬空字：落到别的牌/另一个字上＝互换（绿），落回自己那格＝无效（红）
+      const own=src.unitId?f.units.find(u=>u.id===src.unitId):null;
+      const ownCell=!!own&&t.r===own.r&&t.c===own.c+src.pick;
+      const inside=!!own&&t.r>=own.r&&t.r<own.r+(own.h||1)&&t.c>=own.c&&t.c<own.c+(own.w||1);
+      if(d){
+        if(ownCell) d.classList.add('bad');
+        else if(inside||unitAt(f,t.r,t.c)) d.classList.add('good');
+      }
+      return;
+    }
+    if(slot&&!slot.unlocked&&a.kind==='shovel') d.classList.add('good');
+    else if(!slot&&a.kind==='shovel') d.classList.add('bad');
+    // 拖动时显示该兵种攻击范围，放下即隐藏
+    if(a.kind==='soldier'||a.kind==='general'){
+      const gw=a.kind==='general'?(THEME.generals.find(x=>x.name===a.name).frags.length):1;
+      const st=unitStat(a); showRange(t.r,t.c,gw,st.range);
+    }
+  }
+}
+function onDragEnd(e){
+  window.removeEventListener('pointermove',onDragMove); window.removeEventListener('pointerup',onDragEnd);
+  window.removeEventListener('pointercancel',onDragEnd);
+  clearOver(); clearRange();
+  const src=G.drag,t=dropTargetAt(e.clientX,e.clientY);
+  G.drag=null; G.suppressClick=Date.now()+350;
+  if(dragGhost){ dragGhost.remove(); dragGhost=null; }
+  if(src&&src.type==='lift'){
+    G.press=null;                                       // 退出分解预览
+    if(src.moved) dropLiftedChar(src,t);                // 拖动 → 拆出该字 / 整张换位
+    // 未移动（点击）→ 什么都不做：松手即恢复成整体
+  }
+  else if(src&&t) applyDrop(src,t);
+  renderHand(); renderField(G.me,'me'); renderHUD();
+}
+/* 把从武将拖出的「悬空字」放下（**永远只动这一个字**，不会把整张武将一起拖走）：
+   · 落回自己那一格   → 什么都不做
+   · 落到同武将的另一个字上 → 两个字互换位置（顺序变了就不再是武将，自然散成单字）
+   · 落到别的牌上     → 这个字与那张牌互换位置（字挪过去、牌挪回来）
+   · 落到空格/手牌/营 → 拆出该字并放下，其余字留在场上（保留等级）
+   · 落点无效         → 放回原位（凑齐后自动合回武将） */
+function dropLiftedChar(src,t){
+  const f=G.me;
+  const gu=f.units.find(x=>x.kind==='general'&&x.id===src.unitId)
+        || f.units.find(x=>x.kind==='general'&&x.r===src.origR&&x.c===src.origC&&x.name===src.generalName);
+  if(!gu||!t) return;
+  if(t.type==='tile'){
+    const ownCell=(t.r===src.origR&&t.c===src.origC+src.pick);
+    if(ownCell) return;                                  // 落回自己：不动
+    const inside=t.r>=gu.r&&t.r<gu.r+(gu.h||1)&&t.c>=gu.c&&t.c<gu.c+(gu.w||1);
+    if(inside){ swapCharWithSibling(src,gu,t); return; }  // 同武将的两个字互换
+    const other=unitAt(f,t.r,t.c);
+    if(other){
+      if(other.kind==='general'){ swapLiftedCharWithGeneralChar(src,gu,other,t); return; }
+      swapLiftedCharWithUnit(src,gu,other); return;      // 字 ↔ 牌 互换
+    }
+  }
+  const card=detachCharFromGeneral(f,gu,src.pick);
+  const placed=applyDrop({type:'hand', idx:-1, card, lifted:true}, t);
+  if(!placed){                                  // 落点无效：放回原位（凑齐会自动合回）
+    if(!placeUnit(f, card, src.origR, src.origC+src.pick)){
+      const fi=freeHandSlots();                 // 兜底：至少放进手牌，绝不丢失
+      if(fi.length) G.hand[fi[0]]=card;
+    }
+  }
+}
+/* 同武将的两个字互换位置：赵云 → 云赵（顺序不匹配名字，就不再是武将，散成两个单字） */
+function swapCharWithSibling(src,gu,t){
+  const f=G.me;
+  const card=detachCharFromGeneral(f,gu,src.pick);        // 其余字留在原格
+  const sib=unitAt(f,t.r,t.c);
+  if(!sib||sib.kind!=='frag'){                            // 异常兜底：放回原位
+    placeUnit(f,card,src.origR,src.origC+src.pick); return false;
+  }
+  const sR=sib.r, sC=sib.c, aR=src.origR, aC=src.origC+src.pick;
+  sib.r=aR; sib.c=aC;                                     // 兄弟字挪到本字原来的格
+  if(!placeUnit(f,card,sR,sC)){                           // 本字放到兄弟字原来的格
+    sib.r=sR; sib.c=sC; placeUnit(f,card,aR,aC); return false;
+  }
+  toast('↔ 两个字换了位置');
+  return true;
+}
+/* 「悬空字」与另一个武将的「某个字」互换（永远字级，不做整张互换） */
+function swapLiftedCharWithGeneralChar(src,guA,guB,t){
+  const f=G.me;
+  const pickB=Math.max(0,Math.min((guB.w||1)-1, t.c-guB.c));
+  const aR=src.origR, aC=src.origC+src.pick, bR=guB.r, bC=guB.c+pickB;
+  const cardA=detachCharFromGeneral(f,guA,src.pick);      // 自己的字：其余字留场
+  const cardB=detachCharFromGeneral(f,guB,pickB);         // 对方的字：其余字留场
+  if(!cardA||!cardB){
+    if(cardA) placeUnit(f,cardA,aR,aC);
+    return false;
+  }
+  if(placeUnit(f,cardA,bR,bC)){                           // 本字挪到对方那格
+    if(placeUnit(f,cardB,aR,aC)){                         // 对方的字挪到本字那格
+      toast('↔ 与「'+cardB.key+'」换了位置'); return true;
+    }
+    removeUnit(f,bR,bC);                                  // 回滚
+  }
+  placeUnit(f,cardA,aR,aC); placeUnit(f,cardB,bR,bC);
+  toast('这两张牌位置不够互换（空间不足）');
+  return false;
+}
+/* 「悬空字」与场上一张牌互换位置：字挪到那张牌的格子，牌挪到字原来的格子 */
+function swapLiftedCharWithUnit(src,gu,other){
+  const f=G.me;
+  const aR=src.origR, aC=src.origC+src.pick;              // 本字原来的格（拆出后为空）
+  const bR=other.r, bC=other.c, bw=other.w||1, bh=other.h||1;
+  const card=detachCharFromGeneral(f,gu,src.pick);
+  const i=f.units.indexOf(other); if(i>=0) f.units.splice(i,1);
+  const cols=[]; for(let off=0;off<bw;off++){ const c=aC-off; if(c>=0&&c+bw<=HCOLS) cols.push(c); }
+  for(const c of cols){                                   // 宽牌可左移覆盖该字原格
+    other.r=aR; other.c=c;
+    if(!canPlace(f,aR,c,bw,bh)) continue;
+    f.units.push(other);
+    if(placeUnit(f,card,bR,bC)){ toast('↔ 字和牌换了位置'); return true; }
+    f.units.splice(f.units.indexOf(other),1);
+  }
+  other.r=bR; other.c=bC; f.units.push(other);             // 换不动 → 原样放回
+  if(!placeUnit(f,card,aR,aC)){ const fi=freeHandSlots(); if(fi.length) G.hand[fi[0]]=card; }
+  toast('这两张牌位置不够互换（空间不足）');
+  return false;
+}
+el.halfMe.addEventListener('click',e=>{
+  if(Date.now()<G.suppressClick) return;
+  for(const k in el.tiles.me){
+    const d=el.tiles.me[k];
+    if(inRect(d.getBoundingClientRect(),e.clientX,e.clientY)){
+      tryUnlock(G.me,+d.dataset.r,+d.dataset.c,'me'); renderHand(); renderHUD(); return;
+    }
+  }
+});
+el.hand.addEventListener('click',e=>{
+  if(Date.now()<G.suppressClick) return;
+  for(let i=0;i<HAND_SIZE;i++){
+    const d=el.hslots[i];
+    if(d&&d.dataset.open==='0'&&inRect(d.getBoundingClientRect(),e.clientX,e.clientY)){
+      unlockHandSlot(i); renderHand(); renderHUD(); return;
+    }
+  }
+});
+
+/* ============================ 波次 / 战斗 ============================ */
+/* 波次节奏：固定间隔开下一波，**不等上一波清完**——多波小兵叠加出现，
+   越拖越难，也不会出现「我这边打完了还要等对手打完」的干等。 */
+const WAVE_INTERVAL=18;   // 秒：每隔这么久开下一波
+const FOE_GAP=0.7;        // 同一波内每只小怪的出场间隔（秒）
+function fillWave(f,isBoss){
+  const count=isBoss?1:Math.min(4+Math.floor(G.wave*1.3),18);
+  // 非线性血量曲线：前期温和、后期陡增（让双方后期都可能被攻破，而不是永远满血）
+  const hpMul=(1+Math.pow(Math.max(0,G.wave-1),FOE_HP_EXP)*FOE_HP_MUL)*LEVEL_HP_MUL;
+  // 追加到队列末尾：上一波还没出场的怪照常出，不会被新波挤掉
+  const base=f.spawnList.length? f.spawnList[f.spawnList.length-1].delay+FOE_GAP : f.spawnTimer;
+  for(let i=0;i<count;i++)
+    f.spawnList.push({boss:isBoss,hpMul,wave:G.wave,delay:base+i*(isBoss?0:FOE_GAP)});
+}
+function startWave(){
+  G.waveTimer=WAVE_INTERVAL;
+  if(G.wave>=TOTAL_WAVES) return;              // 已经放完 20 波
+  G.wave++;
+  const isBoss=(G.wave%5===0);
+  fillWave(G.me,isBoss); fillWave(G.ai,isBoss);
+  // 每波开场双方各补馒头（原来是「清场」才给奖励，现在不等清场）
+  G.me.mantou=Math.min(MANTOU_CAP,G.me.mantou+WAVE_BONUS);
+  G.ai.mantou=Math.min(MANTOU_CAP,G.ai.mantou+WAVE_BONUS);
+  toast((isBoss?'⚠️ BOSS 波 ':'第 ')+G.wave+' 波 · 双方同时开打');
+}
+function spawnFoe(f,s){
+  const w=s.wave||G.wave;                       // 按这只怪自己所属的波次算强度
+  const hp=(s.boss?BOSS_HP:FOE_HP_BASE)*s.hpMul;
+  const type=(Math.random()*THEME.foeChars.length)|0;
+  f.foes.push({id:G.nextId++,prog:0,p:pointAt(0),hp,maxHp:hp,
+    speed:(0.082+Math.min(0.06,w*0.0032))*(s.boss?0.7:1),
+    dmg:s.boss?BOSS_DMG:4+((w/2)|0),boss:s.boss,
+    ch:THEME.foeChars[type],type,dead:false});
+}
+function fieldTick(f,which,dt){
+  f.mantou=Math.min(MANTOU_CAP,f.mantou+(f.isAI?AI_INCOME_MULT:1)*INCOME*dt);
+  f.spawnTimer+=dt;
+  while(f.spawnList.length&&f.spawnTimer>=f.spawnList[0].delay) spawnFoe(f,f.spawnList.shift());
+  for(const foe of f.foes){
+    foe.prog+=foe.speed*dt; foe.p=pointAt(foe.prog);
+    if(foe.prog>=PATH_LEN){ foe.dead=true; f.hp-=foe.dmg; if(f.hp<=0){ f.hp=0; f.lost=true; } }
+  }
+  for(const u of f.units){
+    if(u.cd>0) u.cd-=dt;
+    let best=null,bestProg=-1;
+    const oc=u.c+(u.w-1)/2, or=u.r+(u.h-1)/2;
+    for(const foe of f.foes){
+      if(foe.dead) continue;
+      const d=Math.hypot(foe.p.x-oc,foe.p.y-or);
+      if(d<=u.range&&foe.prog>bestProg){ best=foe; bestProg=foe.prog; }
+    }
+    if(best&&u.cd<=0){
+      const dmg=u.dmg*(f.isAI?AI_DMG_MULT:1); u.cd=u.cdMax;
+      if(u.atk==='line'){
+        // 枪：沿指向目标的直线贯穿，命中射程内同一直线上的所有敌人（全额伤害）
+        const ang=Math.atan2(best.p.y-or,best.p.x-oc);
+        for(const foe of f.foes){
+          if(foe.dead) continue;
+          const fx=foe.p.x-oc, fy=foe.p.y-or, dist=Math.hypot(fx,fy);
+          if(dist>u.range) continue;
+          let da=Math.abs(Math.atan2(fy,fx)-ang); if(da>Math.PI) da=2*Math.PI-da;
+          if(da<0.22){ foe.hp-=dmg; foe._dmg=(foe._dmg||0)+dmg; }
+        }
+      } else {
+        best.hp-=dmg; best._dmg=(best._dmg||0)+dmg;
+        if(u.splash>0){ for(const foe of f.foes){
+          if(foe.dead||foe===best) continue;
+          if(Math.hypot(foe.p.x-best.p.x,foe.p.y-best.p.y)<=u.splash){ foe.hp-=dmg*0.5; foe._dmg=(foe._dmg||0)+dmg*0.5; }
+        }}
+      }
+      spawnAttackFx(f,which,u,best); flashUnit(f,u); flashFoe(f,best);
+      if(best.hp<=0&&!best.dead){ best.dead=true; f.mantou+=best.boss?18:1;
+        const host=which==='me'?el.halfMe:el.halfAI; fxKill(host,foePx(f,which,best));
+        if(which==='me') sfxKill(best.boss); }
+    }
+  }
+  for(const foe of f.foes){ if(foe.hp<=0&&!foe.dead){ foe.dead=true; f.mantou+=foe.boss?18:1; } }
+  f.foes=f.foes.filter(x=>!x.dead);
+}
+/* 上半场 AI：一次三张，自动铲子解锁 / 升级 / 布阵 */
+function aiAuto(dt){
+  G.aiTimer+=dt; if(G.aiTimer<2.4) return; G.aiTimer=0;
+  const f=G.ai;
+  if(f.autoShovels>0){
+    const k=TOWER_KEYS.find(x=>!f.slots[x].unlocked);
+    if(k!==undefined){ f.autoShovels--; f.slots[k].unlocked=true; refreshTile('ai',k); }
+  }
+  if(f.mantou<RECRUIT_COST) return;
+  f.mantou-=RECRUIT_COST;
+  for(let i=0;i<RECRUIT_COUNT;i++){
+    const card=drawCard(true);
+    if(card.kind==='shovel'){ f.autoShovels++; continue; }
+    let done=false;
+    for(const u of f.units){
+      if(u.kind==='soldier'&&u.key===card.key&&u.level===card.level&&u.level<MAX_LEVEL){
+        upgradeUnit(u,true); done=true; break; }
+    }
+    if(!done){
+      for(const k of TOWER_KEYS){
+        const r=Math.floor(k/HCOLS),c=k%HCOLS;
+        if(f.slots[k].unlocked&&!unitAt(f,r,c)){ placeUnit(f,card,r,c); done=true; break; }
+      }
+    }
+  }
+}
+function tick(dt){
+  G.time+=dt;
+  fieldTick(G.me,'me',dt); fieldTick(G.ai,'ai',dt);
+  aiAuto(dt);
+  if(G.me.lost||G.ai.lost){
+    if(G.me.lost) loseGame(); else winGame();
+    return;
+  }
+  // 第 20 波：**我方场上（含还没出场的队列）清完就立刻结算**，不再等对手打完
+  if(G.wave>=TOTAL_WAVES&&G.me.spawnList.length===0&&G.me.foes.length===0){ finishByHp(); return; }
+  // 固定节奏开新波：不管上一波有没有清完（多波叠加），也不再等对手
+  if(!G.over){ G.waveTimer-=dt; if(G.waveTimer<=0) startWave(); }
+}
+function finishByHp(){
+  G.over=true;
+  // 只比血量：血多者胜、血少者负、血量相同 → 双方都过关（没有平局、不再比战力）
+  // 触发时机：我方 20 波清完（场上没怪、队列也空）就立刻比，不等对手
+  if(G.me.hp>G.ai.hp){
+    G.win=true;
+    winOverlay('🏆 过关！',`${TOTAL_WAVES} 波你这边清完了。\n你剩 ${G.me.hp} 血 · 对手剩 ${G.ai.hp} 血，你的「斗」更稳！`);
+  } else if(G.me.hp<G.ai.hp){
+    G.win=false;
+    loseOverlay('😵 惜败',`${TOTAL_WAVES} 波你这边清完了，但你的「斗」血量不如对手。\n你剩 ${G.me.hp} 血 · 对手剩 ${G.ai.hp} 血。`);
+  } else {
+    G.win=true;
+    winOverlay('🤝 双方都过关！',`${TOTAL_WAVES} 波你这边清完了，双方「斗」血量相当（都剩 ${G.me.hp} 血），这一局两位都守住了！`);
+  }
+}
+function winGame(){ G.over=true;G.win=true;
+  winOverlay('🏆 对手先失守！',`第 ${G.wave} 波，对手的「斗」先被攻破——你比它多撑了一步。\n你剩 ${G.me.hp} 血 · 对手剩 ${G.ai.hp} 血。`); }
+function loseGame(){ G.over=true;G.win=false;
+  loseOverlay('💀 我方失守',`第 ${G.wave} 波，你的「斗」先被攻破了（对手还剩 ${G.ai.hp} 血）。\n多征兵合成高等级字牌、拼出武将，并用「铲」多开格子。`); }
+/* 赢：记进度、给「下一关」；输：给「重试本关 / 回第 1 关」 */
+function winOverlay(title,text){
+  OVER_MODE='win';
+  stopMusic(); sfxWin();
+  PROGRESS.level=Math.max(PROGRESS.level,G.level+1); saveProgress();
+  showOverlay(title,text+`\n\n第 ${G.level} 关 通关！下一关地图会重新生成。`,
+    `进入第 ${G.level+1} 关 ▶`,'主界面');
+}
+function loseOverlay(title,text){
+  OVER_MODE='lose';
+  stopMusic(); sfxLose();
+  showOverlay(title,text,'重玩本关','主界面');
+}
+function showOverlay(t,text,a,b){ el.ovTitle.textContent=t;el.ovText.textContent=text;
+  el.ovMain.textContent=a;el.ovAgain.textContent=b;el.overlay.hidden=false; }
+function toast(msg){ el.toast.textContent=msg;el.toast.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>el.toast.classList.remove('show'),1700); }
+
+/* ============================ 循环 / 控制 ============================ */
+let lastT=0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(t-lastT)/1000||0); lastT=t;
+  if(G.running&&!G.paused&&!G.over){
+    tick(dt); renderField(G.me,'me'); renderField(G.ai,'ai'); renderHUD();
+  }
+}
+/* ============================ 闯关进度 ============================ */
+const CAMP_KEY='wenzi_td_campaign_v1';
+let PROGRESS={level:1};
+let OVER_MODE='win';
+let homeArm=0;   // 「回主界面」二次确认的时间戳
+function loadProgress(){
+  try{ const o=JSON.parse(localStorage.getItem(CAMP_KEY)||'{}');
+    PROGRESS={level:Math.max(1,Math.floor(o&&o.level)||1)}; }
+  catch(e){ PROGRESS={level:1}; }
+}
+function saveProgress(){ try{ localStorage.setItem(CAMP_KEY,JSON.stringify(PROGRESS)); }catch(e){} }
+function startGame(level){
+  const lv=Math.max(1,Math.floor(level)||CUR_LEVEL||1);
+  if(lv>PROGRESS.level){ PROGRESS.level=lv; saveProgress(); }   // 直接跳关也记进度
+  applyLevel(lv);
+  G=newGame(); G.running=true;
+  buildField(G.ai,el.halfAI,'ai'); buildField(G.me,el.halfMe,'me');
+  el.halfAI.__fxCount=0; el.halfMe.__fxCount=0;
+  clearRange(); fitArena();
+  renderHand(); renderField(G.me,'me'); renderField(G.ai,'ai'); renderHUD();
+  el.home.hidden=true; el.overlay.hidden=true; startWave(); el.pauseBtn.textContent='❚❚';
+  homeArm=0;
+  resumeAudio(); startMusic();   // 必须挂在用户手势里（点「开始游戏」/结算按钮），浏览器才允许出声
+}
+/* 结算面板两个按钮：主按钮＝继续（赢→下一关 / 输→重玩本关），次按钮＝回主界面 */
+function onOverMain(){ startGame(OVER_MODE==='win'?G.level+1:G.level); }
+function onOverAgain(){ showHome(); }
+/* 主界面 */
+function showHome(){
+  el.overlay.hidden=true; $('probModal').hidden=true;
+  el.homeLevel.textContent=`第 ${PROGRESS.level} 关`;
+  el.home.hidden=false; homeArm=0;
+  if(G) G.paused=true;   // 回主界面时战场静止
+  stopMusic();
+}
+function togglePause(){ if(!G.running||G.over) return;
+  G.paused=!G.paused; G.press=null; el.pauseBtn.textContent=G.paused?'▶':'❚❚';
+  if(G.paused) stopMusic(); else startMusic();   // 暂停时音乐也停，继续时接上
+  renderField(G.me,'me'); }
+el.recruitBtn.onclick=recruit;
+el.pauseBtn.onclick=togglePause;
+el.orbReset.onclick=()=>startGame();
+el.orbShovel.onclick=()=>toast(countCard('shovel')>0?
+  `手上有 ${countCard('shovel')} 张「铲」，拖到 🔒 格子解锁（也可直接点 🔒）；铲只在征兵时按概率抽到；本局总量=${G.shovelCap}（还剩 ${G.shovelBudget}）`:
+  '征兵时按概率刷出「铲」字牌（不再每波保底），总量对应未解锁格数');
+el.orbSlots.onclick=()=>toast(`手牌 ${G.handOpen.filter(Boolean).length}/${HAND_SIZE} 格已解锁，双击手牌里的「令」即可再开一格`);
+el.camp.onclick=()=>{ if(Date.now()<G.suppressClick) return;
+  toast('把不要的字牌拖到这里丢弃'); };
+el.ovMain.onclick=onOverMain;
+el.ovAgain.onclick=onOverAgain;
+el.homeStart.onclick=()=>startGame(PROGRESS.level);
+/* 游戏中「回主界面」：一局没打完要连点两次，避免手滑丢掉整局 */
+el.gameHome.onclick=()=>{
+  if(G&&G.running&&!G.over&&Date.now()>homeArm){
+    homeArm=Date.now()+2600;
+    toast('再点一次「主界面」就退出本局（这一局会重来）');
+    return;
+  }
+  homeArm=0; showHome();
+};
+function buildProbTable(){
+  const gens=THEME.generals;
+  /* 与 drawFrag 同一套过滤：某武将满级后，它的字不再进池子（黄需黄忠+黄月英都满级） */
+  const maxed=new Set();
+  if(G&&G.me) for(const u of G.me.units) if(u.kind==='general'&&u.level>=MAX_LEVEL) maxed.add(u.name);
+  const pool=[];
+  for(const e of CHAR_POOL){
+    const g=gens.find(gg=>gg.frags.includes(e.ch)&&!maxed.has(gg.name));
+    if(g) pool.push(e.ch);
+  }
+  const N=pool.length, pChar=N?1/N:0;
+  let html='<tr><th>武将</th><th>名字</th><th>每字概率</th><th>抽到该将任一字的概率</th></tr>';
+  for(const g of gens){
+    const uniq=[...new Set(g.frags)];
+    const off=maxed.has(g.name);   // 该武将已满级 → 整行划掉（共用字如「黄」仍可能为别的将刷出）
+    html+=`<tr${off?' class="row-off"':''}><td class="gname">${g.name}${off?' · 已封顶':''}</td><td>${g.frags.join(' ')}</td>`
+      +`<td class="pct">${off?'—':(pChar*100).toFixed(1)+'%'}</td>`
+      +`<td class="pct">${off?'已封顶':(pChar*uniq.length*100).toFixed(1)+'%'}</td></tr>`;
+  }
+  html+=`<tr><td class="gname">合计</td><td>${N} 个字</td><td class="pct">${(pChar*100).toFixed(1)}%</td><td class="pct">${N?'100%':'0%'}</td></tr>`;
+  $('probTable').innerHTML=html;
+}
+$('probBtn').onclick=()=>{ buildProbTable(); $('probModal').hidden=false; };
+$('probClose').onclick=()=>{ $('probModal').hidden=true; };
+/* 声音开关（🔊/🔇），状态记在 localStorage */
+el.sndBtn.onclick=toggleSound;
+el.homeSnd.onclick=toggleSound;
+paintSndBtn();
+window.addEventListener('resize',()=>{ if(G) fitArena(); });
+window.addEventListener('orientationchange',()=>{ if(G) fitArena(); });
+
+loadProgress();
+applyLevel(PROGRESS.level);
+G=newGame();
+buildField(G.ai,el.halfAI,'ai'); buildField(G.me,el.halfMe,'me');
+fitArena(); renderHand(); renderHUD();
+showHome();   // 首屏＝主界面（不再弹「云梦泽简介」）
+requestAnimationFrame(t=>{ lastT=t; loop(t); });
+
+window.__td={get state(){return G;},startGame,recruit,discardHand,tryUnlock,unlockHandSlot,
+  applyDrop,placeUnit,renderHand,renderField,renderHUD,tick,newGame,drawCard,drawFrag,
+  soldierCard,fragCard,generalCard,shovelCard,tokenCard,grantShovelCard,cardLabel,
+  showRange,clearRange,spawnAttackFx,freeHandSlots,countCard,unitAt,canPlace,upgradeUnit,
+  get towerKeys(){return TOWER_KEYS;},get pathLen(){return PATH_LEN;},get roadCount(){return ROAD_KEYS.size;},
+  get handSize(){return HAND_SIZE;},get recruitCount(){return RECRUIT_COUNT;},
+  get towerLocked(){return TOWER_LOCKED;},get handLocked(){return HAND_LOCKED;},
+  get shovelBudget(){return G.shovelBudget;},get tokenBudget(){return G.tokenBudget;},
+  get generals(){return THEME.generals;},get soldiers(){return THEME.soldiers;},get aiDmgMult(){return AI_DMG_MULT;},
+  get incomeMult(){return AI_INCOME_MULT;},get foeHpBase(){return FOE_HP_BASE;},get bossHp(){return BOSS_HP;},
+  buildProbTable,breakGeneralToFrags,detachCharFromGeneral,dropLiftedChar,startDrag,onDragEnd,cardFromUnit,clearNoMerge,
+  get charPool(){return CHAR_POOL;},get waveInterval(){return WAVE_INTERVAL;},get waveTimer(){return G.waveTimer;},
+  get path(){return PATH;},get base(){return BASE;},get initUnlocked(){return [...INIT_UNLOCKED];},
+  applyLevel,genLevel,get levelHpMul(){return LEVEL_HP_MUL;},get levelRamp(){return LEVEL_RAMP;},get progress(){return PROGRESS;},get overMode(){return OVER_MODE;},
+  winOverlay,loseOverlay,onOverMain,onOverAgain,loadProgress,saveProgress,winGame,loseGame,
+  showHome,paintBaseHp,FOE_CHAR,get baseHpEls(){return el.baseHp;},
+  get income(){return INCOME;},get waveBonus(){return WAVE_BONUS;},
+  get mantoCap(){return MANTOU_CAP;},get pShovel(){return P_SHOVEL;},get pToken(){return P_TOKEN;},
+  get shovelCap(){return G.shovelCap;},get tokenCap(){return G.tokenCap;},
+  splitGeneral,recomputeGenerals,unlockNextHandSlot,drawFrag,UNIT_ATK,TOOL_ICON,decorateZi,
+  canUpgradeFrag,finishByHp,
+  /* 声音：给自动化测试用的探针 */
+  toggleSound,startMusic,stopMusic,resumeAudio,paintSndBtn,
+  sfxAttack,sfxKill,sfxDraw,sfxUp,sfxUnlock,sfxWin,sfxLose,
+  get sndOn(){return sndOn;},get acState(){return AC?AC.state:'none';},
+  get musicOn(){return !!musicTimer;},get musicStep(){return musicStep;}};
+</script>
+</body>
+</html>
