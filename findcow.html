@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>找牛找猫 · 彩色逻辑挑战</title>
+<style>
+  :root{
+    --ink:#222838; --muted:#7d869b; --line:#e9ecf4; --card:#fff;
+    --accent:#5a6cf0; --accent-soft:#eef0ff; --danger:#e5484d;
+    --gap:clamp(3px,0.9vw,7px);
+    --shadow:0 18px 50px rgba(40,50,90,.13), 0 2px 8px rgba(40,50,90,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:radial-gradient(1200px 700px at 12% -10%,#e7ecff 0%,transparent 60%),
+               radial-gradient(900px 600px at 100% 0%,#ffe9f0 0%,transparent 55%),
+               radial-gradient(800px 700px at 50% 110%,#e3f7f1 0%,transparent 60%),
+               #f6f7fb;
+    background-attachment:fixed;
+  }
+  button{font-family:inherit;color:inherit}
+  .app{
+    width:min(660px,94vw); margin:26px auto 54px; padding:22px 24px 26px;
+    background:rgba(255,255,255,.94); border:1px solid rgba(255,255,255,.9);
+    border-radius:26px; box-shadow:var(--shadow); backdrop-filter:blur(10px);
+  }
+  /* ---------- header ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#ffe1b8,#ffc48c);
+        display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 5px 14px rgba(240,160,90,.3);flex:none}
+  .logo svg{width:34px;height:34px}
+  h1{font-size:21px;line-height:1.2;margin:0;letter-spacing:.5px}
+  .brand p{margin:3px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .head-btns{display:flex;gap:8px;flex:none}
+  .icon-btn{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:#fff;
+            cursor:pointer;display:grid;place-items:center;transition:.15s;font-size:17px;font-weight:700}
+  .icon-btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+  .icon-btn svg{width:18px;height:18px}
+  .icon-btn.off{opacity:.45}
+  /* ---------- segmented controls ---------- */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;align-items:center;justify-content:space-between}
+  .seg{display:inline-flex;background:#f2f4f9;border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;border-radius:9px;padding:7px 11px;font-size:12.5px;
+              font-weight:600;color:var(--muted);cursor:pointer;transition:.16s;white-space:nowrap}
+  .seg button:hover{color:var(--ink)}
+  .seg button.active{background:#fff;color:var(--accent);box-shadow:0 2px 7px rgba(40,50,90,.12)}
+  .seg-label{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+  /* ---------- 返回主界面 / 本关随机主题 ---------- */
+  /* 特异性要高于后面的 .btn{flex:1}，否则会被拉成一整条 */
+  .controls .btn.home-btn{flex:0 0 auto;padding:8px 15px;font-size:12.5px;font-weight:700;
+    background:var(--accent-soft);border-color:#cbd3f5;color:var(--accent)}
+  .controls .btn.home-btn:hover{background:#e4e8ff;color:var(--accent)}
+  .target-pill{flex:none;background:#fff5dd;border:1px solid #f6e0ae;border-radius:9px;
+    padding:4px 9px;font-size:12px;font-weight:800;color:#a06a12;white-space:nowrap}
+  /* ---------- status ---------- */
+  .statusbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px;
+             background:#fafbfe;border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+  .hearts{display:flex;gap:4px;align-items:center}
+  .hearts svg{width:19px;height:19px;transition:.2s}
+  .hearts .lost{opacity:.22;transform:scale(.86)}
+  .stat{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .stat b{color:var(--ink);font-size:14px}
+  .stat.clock{margin-left:auto;font-variant-numeric:tabular-nums;letter-spacing:.6px;color:var(--ink)}
+  /* ---------- board ---------- */
+  .board-area{position:relative;margin:20px 0 0}
+  .generating{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;
+              background:rgba(255,255,255,.84);backdrop-filter:blur(3px);border-radius:16px;
+              font-size:13px;font-weight:700;color:var(--accent)}
+  .generating[hidden]{display:none}
+  .spinner{width:16px;height:16px;margin-right:9px;border:2.5px solid #dfe3f3;border-top-color:var(--accent);
+           border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .board-wrap{
+    display:grid;grid-template-columns:18px minmax(0,1fr);grid-template-rows:18px auto;
+    gap:6px;width:min(100%,540px);margin:0 auto;
+  }
+  .col-dots,.row-dots{display:grid;gap:var(--gap)}
+  .col-dots{grid-column:2;grid-row:1;grid-template-columns:repeat(var(--n),1fr)}
+  .row-dots{grid-column:1;grid-row:2;grid-template-rows:repeat(var(--n),1fr)}
+  .dot{border:0;background:transparent;padding:0;cursor:pointer;display:grid;place-items:center;
+       border-radius:6px;font-size:10px;font-weight:800;color:#a9b3c8;transition:.15s}
+  .dot:hover{background:#eef0ff;color:var(--accent)}
+  .dot.done{color:#2fa36b;background:#e6f8ef}
+  .dot.focused{background:var(--accent-soft);color:var(--accent)}
+  .board{
+    grid-column:2;grid-row:2;display:grid;grid-template-columns:repeat(var(--n),1fr);
+    grid-template-rows:repeat(var(--n),1fr);gap:var(--gap);aspect-ratio:1/1;
+  }
+  .cell{
+    position:relative;border:0;padding:0;border-radius:clamp(4px,1.1vw,10px);
+    background:var(--c);cursor:pointer;overflow:hidden;
+    transition:transform .13s ease,box-shadow .13s ease,opacity .18s ease,filter .18s ease,background .18s ease;
+    touch-action:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none;
+  }
+  .cell::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 0 -3px 0 rgba(0,0,0,.10)}
+  .cell:hover{transform:translateY(-2px) scale(1.035);box-shadow:0 7px 15px rgba(30,40,80,.22);z-index:3}
+  .cell:active{transform:scale(.95)}
+  .cell .glyph{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .cell .glyph svg{width:62%;height:62%}
+  .cell.marked::before{box-shadow:inset 0 0 0 2px rgba(255,255,255,.6),inset 0 -3px 0 rgba(0,0,0,.10)}
+  /* 翻错也保留原方块底色：只加红色内描边，并用白色圆底托住红叉 */
+  .cell.wrong::after{content:"";position:absolute;inset:0;border-radius:inherit;
+    box-shadow:inset 0 0 0 2.5px rgba(255,89,99,.92);pointer-events:none}
+  .cell.wrong .glyph::before{content:"";position:absolute;inset:14%;border-radius:50%;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.10)}
+  .cell.wrong .glyph svg{position:relative;width:72%;height:72%}
+  /* 翻开动物后保留原本的方块颜色，只加一圈金边 + 白色圆底托住头像 */
+  .cell.found{box-shadow:0 0 0 2.5px #ffc53d,0 6px 16px rgba(255,180,40,.4);z-index:2}
+  .cell.found .glyph::before{content:"";position:absolute;inset:7%;border-radius:50%;
+    background:rgba(255,255,255,.94);box-shadow:0 1px 5px rgba(0,0,0,.14)}
+  .cell.found .glyph svg{position:relative;width:80%;height:80%}
+  .cell.dim{opacity:.2;filter:grayscale(.55)}
+  /* 提示：目标格脉冲高亮，依据格白圈标注 */
+  .cell.hint-target{box-shadow:0 0 0 3px #fff,0 0 0 6px #ffb020,0 0 0 9px rgba(255,176,32,.3);z-index:5;
+    animation:hintPulse 1.15s ease-in-out infinite}
+  .cell.hint-evidence{box-shadow:0 0 0 2.5px #fff,0 0 0 4.5px rgba(90,108,240,.75);z-index:4}
+  @keyframes hintPulse{50%{box-shadow:0 0 0 3px #fff,0 0 0 6px #ffb020,0 0 0 13px rgba(255,176,32,.05)}}
+  .board.dragging{cursor:crosshair}
+  .board.dragging .cell{transition:opacity .18s ease,filter .18s ease,background .18s ease}
+  .board.dragging .cell:hover{transform:none;box-shadow:none}
+  .cell.pop{animation:pop .42s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{0%{transform:scale(.6) rotate(-9deg)}60%{transform:scale(1.16) rotate(4deg)}100%{transform:scale(1)}}
+  .shake{animation:shake .34s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+  .cell.hintflash{animation:hintflash .9s ease 2}
+  @keyframes hintflash{0%,100%{box-shadow:0 0 0 0 rgba(90,108,240,0)}50%{box-shadow:0 0 0 4px rgba(90,108,240,.55)}}
+  /* ---------- legend ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:16px auto 0;width:min(100%,540px)}
+  .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+        border-radius:9px;padding:5px 9px 5px 6px;font-size:11.5px;font-weight:700;color:#586078;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .chip .swatch{width:15px;height:15px;border-radius:5px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+  .chip.done{opacity:.48;text-decoration:line-through}
+  .chip.focused{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:20px}
+  .toolbar-note{font-size:12px;color:var(--muted);font-weight:600}
+  /* 特异性要高于后面的 .btn{flex:1}，否则会被拉成一整条 */
+  .toolbar .btn.clear-marks{flex:0 0 auto;padding:8px 14px;font-size:12.5px;font-weight:700;
+    background:var(--accent-soft);border-color:#cbd3f5;color:var(--accent)}
+  .toolbar .btn.clear-marks:hover{background:#e4e8ff}
+  .actions{display:flex;gap:9px;margin-top:16px}
+  .btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 8px;
+       font-size:13px;font-weight:700;cursor:pointer;transition:.16s}
+  .btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 5px 14px rgba(90,108,240,.32)}
+  .btn.primary:hover{background:#4a5ce0;color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  /* ---------- rules ---------- */
+  .rules{margin-top:20px;border-top:1px dashed var(--line);padding-top:16px}
+  .rules h2{font-size:13px;margin:0 0 10px;display:flex;align-items:center;gap:7px}
+  .rules h2::before{content:"";width:4px;height:14px;border-radius:3px;background:var(--accent)}
+  .rule-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .rule{background:#f8f9fd;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:11.5px;line-height:1.6;color:#5b6478}
+  .rule b{color:var(--ink)}
+  .tips{margin-top:10px;font-size:11.5px;line-height:1.8;color:var(--muted);background:#fffaf0;border:1px solid #f6e8c8;border-radius:11px;padding:9px 12px}
+  .tips b{color:#a06a12}
+  .hint-card{margin:14px auto 0;max-width:540px;background:#fff;border:1.5px solid #dfe3f3;border-radius:14px;
+    padding:13px 15px;box-shadow:0 8px 24px rgba(40,55,100,.10)}
+  .hint-card[hidden]{display:none}
+  .hint-head{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;color:var(--accent)}
+  .hint-tag{background:var(--accent-soft);border-radius:6px;padding:3px 7px;font-size:11px}
+  .hint-why{margin:9px 0 12px;font-size:13px;line-height:1.75;color:#3d465e}
+  .hint-foot{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .hint-foot .btn{flex:0 0 auto;padding:7px 13px;font-size:12.5px}
+  .hint-left{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
+  .mode-hint{margin:12px 0 0;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.7}
+  .mode-hint kbd{background:#f0f2f8;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px;font-family:inherit;color:var(--ink)}
+  footer{text-align:center;font-size:11px;color:#aeb5c6;margin-top:18px}
+  /* ---------- overlay ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(28,34,52,.5);backdrop-filter:blur(5px);
+           display:none;place-items:center;z-index:50;padding:20px}
+  .overlay.show{display:grid}
+  .modal{background:#fff;border-radius:24px;padding:28px 26px;width:min(370px,92vw);text-align:center;
+         box-shadow:0 26px 70px rgba(20,28,60,.3);animation:rise .3s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes rise{from{transform:translateY(18px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+  .modal .micon{width:74px;height:74px;margin:0 auto 12px;display:grid;place-items:center;border-radius:24px;background:#fff5dd}
+  .modal .micon svg{width:58px;height:58px}
+  .modal h2{margin:0 0 6px;font-size:22px}
+  .modal p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}
+  .stars{font-size:26px;letter-spacing:5px;color:#ffb020;margin:10px 0 2px}
+  .modal .btn{margin-top:18px;width:100%}
+  .modal .sub{display:block;margin-top:9px;font-size:12px;color:var(--muted)}
+  /* ---------- 启动模式选择界面 ---------- */
+  .mode-screen{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;
+    background:radial-gradient(1200px 700px at 12% -10%,#e7ecff 0%,transparent 60%),
+               radial-gradient(900px 600px at 100% 0%,#ffe9f0 0%,transparent 55%),
+               radial-gradient(800px 700px at 50% 110%,#e3f7f1 0%,transparent 60%),#f6f7fb}
+  .mode-screen[hidden]{display:none}
+  .mode-panel{width:min(520px,100%);background:#fff;border:1px solid rgba(255,255,255,.9);
+    border-radius:26px;padding:28px 26px 22px;box-shadow:0 26px 70px rgba(20,28,60,.18);text-align:center}
+  .mode-logo{width:64px;height:64px;margin:0 auto 12px;border-radius:20px;
+    background:linear-gradient(145deg,#ffe1b8,#ffc48c);display:grid;place-items:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 20px rgba(240,160,90,.28)}
+  .mode-logo svg{width:44px;height:44px}
+  .mode-panel h2{margin:0;font-size:22px;letter-spacing:.5px}
+  .mode-panel>.mode-sub{margin:7px 0 0;font-size:12.5px;color:var(--muted);line-height:1.75}
+  .mode-cards{display:grid;gap:12px;margin-top:22px;text-align:left}
+  .mode-card{border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;background:#fafbfe;
+    cursor:pointer;transition:.16s;outline:none}
+  .mode-card:hover,.mode-card:focus-visible{border-color:var(--accent);transform:translateY(-2px);
+    box-shadow:0 10px 24px rgba(40,55,100,.12)}
+  .mode-card.featured{background:linear-gradient(135deg,#f2f4ff,#fff);border-color:#cbd3f5}
+  .mode-card h3{margin:0 0 7px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .mode-tag{font-size:10.5px;font-weight:800;color:#fff;background:var(--accent);border-radius:6px;padding:2px 7px}
+  .mode-card p{margin:0;font-size:12px;line-height:1.75;color:var(--muted)}
+  .mode-meta{margin-top:10px;font-size:11.5px;font-weight:700;color:var(--accent)}
+  .mode-go{display:inline-block;margin-top:12px;font-size:13px;font-weight:800;color:var(--accent)}
+  .mode-foot{margin-top:16px;font-size:11.5px;color:var(--muted)}
+  .mode-foot button{border:0;background:transparent;color:var(--muted);font-size:11.5px;
+    text-decoration:underline;cursor:pointer;padding:2px 4px}
+  .mode-foot button:hover{color:var(--danger)}
+  /* ---------- 闯关信息条 ---------- */
+  .campaign-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--ink)}
+  .campaign-info[hidden],.seg[hidden],.seg-label[hidden]{display:none}
+  .campaign-info .lv-pill{background:var(--accent-soft);color:var(--accent);border-radius:9px;padding:5px 10px}
+  .campaign-info .lv-stage,.campaign-info .lv-best{color:var(--muted);font-weight:600;font-size:11.5px}
+  .mode-label{font-size:12px;font-weight:800;color:var(--accent);background:var(--accent-soft);
+    border-radius:8px;padding:5px 9px;margin-right:2px}
+  /* ---------- 教学模式：棋盘上方的引导气泡 ---------- */
+  .tut-bubble{
+    position:relative;
+    background:linear-gradient(135deg,#fff8ea,#fffdf8);
+    border:1.5px solid #f2cf92;border-radius:16px;
+    padding:10px 14px 12px;margin:0 0 12px;
+    box-shadow:0 8px 22px rgba(200,150,60,.16);
+    animation:tutIn .26s ease;
+  }
+  .tut-bubble[hidden]{display:none}
+  @keyframes tutIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  /* 指向棋盘的小箭头 */
+  .tut-bubble::after{
+    content:"";position:absolute;left:50%;bottom:-7.5px;width:12px;height:12px;margin-left:-6px;
+    background:#fffdf8;border-right:1.5px solid #f2cf92;border-bottom:1.5px solid #f2cf92;
+    transform:rotate(45deg);
+  }
+  .tut-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .tut-badge{
+    flex:0 0 auto;font-size:10.5px;font-weight:800;color:#fff;letter-spacing:.3px;
+    background:linear-gradient(135deg,#f0a63c,#e08c1e);
+    border-radius:8px;padding:3px 8px;
+  }
+  .tut-msg{margin:0;font-size:14px;line-height:1.68;color:#7a4a12;font-weight:600}
+  .tut-skip{
+    margin-left:auto;border:0;background:transparent;color:#b5761f;font-size:11px;
+    text-decoration:underline;cursor:pointer;padding:2px 0;font-family:inherit;
+  }
+  .tut-skip:hover{color:var(--danger)}
+  /* 教学引导：需要玩家操作的格子（强脉冲，一眼看到） */
+  .cell.tut-hl{
+    box-shadow:0 0 0 3px #fff,0 0 0 7px #ff8c00,0 0 20px 5px rgba(255,140,0,.5);
+    z-index:6;animation:tutPulse 1s ease-in-out infinite;
+  }
+  @keyframes tutPulse{
+    0%,100%{box-shadow:0 0 0 3px #fff,0 0 0 7px #ff8c00,0 0 14px 2px rgba(255,140,0,.42);transform:scale(1)}
+    50%{box-shadow:0 0 0 3px #fff,0 0 0 8px #ffb020,0 0 30px 10px rgba(255,140,0,.72);transform:scale(1.04)}
+  }
+  /* 整行 / 整列的淡色提示（不抢眼，只说明「看这一条」） */
+  .cell.tut-band{box-shadow:inset 0 0 0 2px rgba(255,140,0,.55)}
+  /* ---------- 手机端：所有操作要素压进一屏，不用上下滑动 ---------- */  @media (max-width:560px){
+    /* 内容不足一屏时垂直居中；超出一屏时自动从顶部开始，仍可正常滚动 */
+    body{padding:0;display:flex;flex-direction:column;min-height:100svh}
+    .app{width:calc(100% - 12px);margin:auto;padding:9px 9px 7px;border-radius:18px}
+
+    /* 顶栏压成一行，副标题让位给棋盘 */
+    .topbar{gap:8px}
+    .brand{gap:8px}
+    .logo{width:30px;height:30px;border-radius:10px}
+    .logo svg{width:21px;height:21px}
+    h1{font-size:15px;letter-spacing:0}
+    .brand p{display:none}
+    .head-btns{gap:6px}
+    .icon-btn{width:29px;height:29px;border-radius:9px;font-size:15px}
+    .icon-btn svg{width:15px;height:15px}
+
+    /* 模式行不换行 */
+    .controls{margin-top:7px;gap:6px;flex-wrap:nowrap}
+    .controls>div{gap:6px !important;flex-wrap:nowrap}
+    .mode-label{font-size:10.5px;padding:3px 7px}
+    .seg-label{display:none}
+    .seg{padding:2px;gap:1px;border-radius:9px}
+    .seg button{padding:5px 7px;font-size:11px;border-radius:7px}
+    .controls .btn.home-btn{padding:5px 9px;font-size:11px;border-radius:8px;white-space:nowrap}
+    .hb-full{display:none}
+    .lv-stage,.lv-best{display:none}
+    .lv-pill{font-size:10.5px;padding:3px 7px}
+
+    /* 状态栏一行放完（9 颗心也不换行） */
+    .statusbar{margin-top:7px;padding:5px 8px;gap:7px;flex-wrap:nowrap;border-radius:10px}
+    .target-pill{font-size:10px;padding:3px 6px;border-radius:6px}
+    .hearts{gap:2px}
+    .hearts svg{width:12px;height:12px}
+    .stat{font-size:10px}
+    .stat b{font-size:11.5px}
+    .stat.clock{font-size:10px;letter-spacing:0}
+
+    /* 教学气泡 */
+    .tut-bubble{padding:8px 11px 9px;margin-bottom:8px;border-radius:13px}
+    .tut-top{margin-bottom:4px}
+    .tut-badge{font-size:9.5px;padding:2px 6px;border-radius:6px}
+    .tut-msg{font-size:12.5px;line-height:1.6}
+    .tut-skip{font-size:10px}
+
+    /* 棋盘宽度由 fitBoard() 按「屏幕剩余高度」实时算，保证一屏放得下 */
+    .board-area{margin-top:7px}
+    .board-wrap{
+      grid-template-columns:13px minmax(0,1fr);grid-template-rows:13px auto;gap:4px;
+      width:var(--bw, 100%);
+    }
+    .dot{font-size:7.5px;border-radius:4px}
+    .cell{border-radius:clamp(4px,1.5vw,9px)}
+
+    /* 图例：单行横滑，不占两行 */
+    .legend{
+      margin-top:7px;gap:5px;flex-wrap:nowrap;justify-content:flex-start;
+      overflow-x:auto;scrollbar-width:none;padding:1px 0 3px;
+    }
+    .legend::-webkit-scrollbar{display:none}
+    .chip{flex:0 0 auto;padding:3px 6px 3px 4px;font-size:9.5px;border-radius:6px;gap:4px}
+    .chip .swatch{width:10px;height:10px;border-radius:3px}
+
+    /* 工具栏：说明文字藏起来，只留「清除标记」 */
+    .toolbar{margin-top:7px;flex-wrap:nowrap;gap:6px}
+    .toolbar-note{display:none}
+    .toolbar .btn.clear-marks{margin-left:auto;padding:5px 11px;font-size:11px;border-radius:8px}
+
+    /* 主操作按钮 */
+    .actions{margin-top:7px;gap:6px}
+    .btn{padding:8px 5px;font-size:11.5px;border-radius:9px}
+
+    /* 操作提示压成一行 */
+    .mode-hint{margin-top:6px;font-size:9.5px;line-height:1.5}
+    .mode-hint .mh-2{display:none}
+    .mode-hint kbd{padding:0 4px;font-size:9.5px;border-radius:4px}
+
+    .rules{margin-top:10px;padding-top:10px}
+    .rule-grid{grid-template-columns:1fr}
+    footer{display:none}
+
+    /* 提示卡片改成贴底浮层：出现时不挤压棋盘，也不用滚动去找 */
+    .hint-card{
+      position:fixed;left:8px;right:8px;bottom:8px;z-index:45;margin:0;
+      max-height:62svh;overflow:auto;border-radius:16px;
+      box-shadow:0 -6px 34px rgba(30,42,80,.22);
+    }
+    .hint-why{font-size:12.5px;margin:7px 0 10px}
+
+    /* 主界面 */
+    .mode-panel{padding:22px 16px 18px;border-radius:20px}
+    .mode-cards{gap:10px;margin-top:14px}
+    .mode-card{padding:13px}
+  }
+</style>
+</head>
+<body>
+<div class="mode-screen" id="modeScreen">
+  <div class="mode-panel">
+    <div class="mode-logo" id="modeLogo"></div>
+    <h2>找牛找猫</h2>
+    <p class="mode-sub">每行、每列、每片同色区域各藏一只动物。<br>第一次玩？先试试「教学模式」，一个关卡带你走完整套推理。</p>
+    <div class="mode-cards">
+      <div class="mode-card featured" data-gamemode="campaign" role="button" tabindex="0" aria-label="进入闯关模式">
+        <h3>闯关模式 <span class="mode-tag">推荐</span></h3>
+        <p>前 25 关按 5×5 → 9×9 阶梯进阶，第 26 关起每关随机难度。近期关卡动物摆位不重复，进度自动保存在本机。</p>
+        <div class="mode-meta" id="modeProgress">当前第 1 关 · 最高第 1 关 · 累计通关 0 关</div>
+        <span class="mode-go" id="modeGoCampaign">开始闯关 →</span>
+      </div>
+      <div class="mode-card" data-gamemode="tutorial" role="button" tabindex="0" aria-label="进入教学模式">
+        <h3>教学模式 <span class="mode-tag">新手</span></h3>
+        <p>一个固定关卡分 6 步带你走：翻开、标记、按区域排除、按行列排除，最后自己找完。手把手教完直接能上手。</p>
+        <span class="mode-go">开始学习 →</span>
+      </div>
+      <div class="mode-card" data-gamemode="practice" role="button" tabindex="0" aria-label="进入自由练习">
+        <h3>自由练习</h3>
+        <p>自由选择 5×5 ~ 9×9 难度，随时换一关重练，不计入闯关进度。</p>
+        <span class="mode-go">开始练习 →</span>
+      </div>
+    </div>
+    <div class="mode-foot">闯关进度保存在本机浏览器 · <button id="resetProgressBtn" type="button">重置闯关进度</button></div>
+  </div>
+</div>
+
+<main class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" id="logo"></div>
+      <div>
+        <h1>找牛找猫</h1>
+        <p>每行 · 每列 · 每片同色区域，各藏一只</p>
+      </div>
+    </div>
+    <div class="head-btns">
+      <button class="icon-btn" id="rulesBtn" title="显示 / 隐藏规则" aria-label="规则">?</button>
+      <button class="icon-btn" id="soundBtn" title="音效开关" aria-label="音效"></button>
+    </div>
+  </header>
+
+  <section class="controls">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="mode-label" id="modeLabel">练习模式</span>
+      <span class="seg-label" id="difficultyLabel">难度</span>
+      <div class="seg" id="levelSeg"></div>
+      <div class="campaign-info" id="campaignInfo" hidden>
+        <span class="lv-pill">第 <b id="lvNum">1</b> 关 · <b id="lvSize">5×5</b></span>
+        <span class="lv-stage" id="lvStage">阶梯进阶</span>
+        <span class="lv-best" id="lvBest">最高 1 关</span>
+      </div>
+    </div>
+    <button class="btn home-btn" id="homeBtn" type="button" title="回到玩法选择主界面">← 返回<span class="hb-full">主界面</span></button>
+  </section>
+
+  <section class="statusbar">
+    <span class="target-pill" id="targetPill">本关找牛</span>
+    <div class="hearts" id="hearts"></div>
+    <div class="stat">找到 <b id="found">0</b> / <b id="total">7</b></div>
+    <div class="stat">提示 <b id="hintsLeft">3</b></div>
+    <div class="stat clock" id="clock">00:00</div>
+  </section>
+
+  <section class="board-area">
+    <section class="tut-bubble" id="tutorialBar" hidden>
+      <div class="tut-top">
+        <span class="tut-badge" id="tutStep">1 / 6</span>
+        <button class="tut-skip" id="tutSkip" type="button">退出教学</button>
+      </div>
+      <p class="tut-msg" id="tutMsg">请双击红色格子</p>
+    </section>
+    <div class="generating" id="generating" hidden><span class="spinner"></span>正在生成关卡…</div>
+    <div class="board-wrap" id="boardWrap">
+      <div></div>
+      <div class="col-dots" id="colDots"></div>
+      <div class="row-dots" id="rowDots"></div>
+      <div class="board" id="board"></div>
+    </div>
+  </section>
+
+  <section class="legend" id="legend"></section>
+
+  <section class="toolbar">
+    <span class="toolbar-note" id="toolbarNote">自动排除已默认开启（找到动物后自动标白叉）· 清除标记只清手动标记</span>
+    <button class="btn clear-marks" id="clearMarksBtn" title="只清除你手动标的白叉；自动排除范围内的白叉（含你先标过的）会保留">清除标记</button>
+  </section>
+
+  <section class="actions">
+    <button class="btn primary" id="hintBtn">给点提示</button>
+    <button class="btn" id="restartBtn">重玩本关</button>
+    <button class="btn" id="newBtn">换一关</button>
+  </section>
+
+  <div class="hint-card" id="hintCard" hidden>
+    <div class="hint-head"><span class="hint-tag">推理线索</span><span id="hintWhere"></span></div>
+    <p class="hint-why" id="hintWhy"></p>
+    <div class="hint-foot">
+      <button class="btn primary" id="hintApply">标上白叉</button>
+      <button class="btn" id="hintNext">换一条</button>
+      <button class="btn" id="hintClose">知道了</button>
+      <span class="hint-left" id="hintLeft"></span>
+    </div>
+  </div>
+
+  <p class="mode-hint"><span class="mh-1"><kbd>单击</kbd> 标白色叉（再点取消） · <kbd>双击</kbd> 翻开。</span><span class="mh-2"><br><kbd>按住拖动</kbd> 可一次刷过多个格子连续标记；从白叉上起拖则连续取消。手机同样适用。</span></p>
+
+  <section class="rules" id="rulesPanel">
+    <h2>游戏规则</h2>
+    <div class="rule-grid">
+      <div class="rule"><b>① 行列唯一</b><br>每一行、每一列，有且仅有一只动物。</div>
+      <div class="rule"><b>② 颜色唯一</b><br>同色方块连成一整片，每片里恰好一只动物。区域大小不限，偶尔会出现只有 1~2 格的小色块。</div>
+      <div class="rule"><b>③ 互不相邻</b><br>动物周围一圈 8 格里不会有其它动物。</div>
+      <div class="rule"><b>④ 翻开代价</b><br>翻错扣 1 颗心并留下红色叉；找齐全部即通关。</div>
+    </div>
+    <div class="tips">
+      <b>推理小抄：</b>同色方块现在连成整片，可以像拼图一样按区域排查。找到一只后，它所在的整行、整列、整片同色区域，以及紧挨着它的一圈，都不可能再有动物。<br>
+      点顶部的<b>列标</b>、左侧的<b>行标</b>或下方<b>色块</b>可以高亮对应格子，方便数数；<b>自动排除默认开启且无法关闭</b>，找到动物后会替你把确定安全的格子打上白叉，想重标自己画的叉就点「清除标记」（<b>只清手动标记，自动排除范围内的白叉一律保留</b>，包括你先手动标过、之后被系统确认安全的格子；动物和红叉也保留）。<br>
+      每一关都经过校验：不仅<b>有且只有一个</b>解，还会确认整关<b>能一步步纯推理推出来</b>，不需要靠运气瞎猜。<br>
+     卡住时点「给点提示」，它只讲你在棋盘上<b>看得见、能自己核对</b>的依据 —— 比如某行 / 列 / 区域已经找到动物、某片区域只剩一个空格、动物周围一圈、某处的候选格子全落在另一片区域里。看过理由再决定要不要落子，不会直接替你改棋盘。<br>
+      打开时先在主界面选玩法：<b>教学模式</b>用一个固定关卡分 6 步手把手教「翻开 → 标记 → 按区域排除 → 按行列排除 → 自己找完」，教学关<b>不自动排除</b>，白叉全由你自己标；<b>闯关模式</b>前 25 关从 5×5 阶梯升到 9×9，第 26 关起每关随机难度，进度自动保存在本机；<b>自由练习</b>可随意选难度。每一关会<b>随机</b>换成找牛或找猫（状态栏有提示），不能手动切换主题；点「<b>返回主界面</b>」随时回到玩法选择。
+    </div>
+  </section>
+  <footer>纯前端单文件 · 无需联网 · 数据不会离开你的设备</footer>
+</main>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
+<!-- ===================== 关卡生成核心（纯逻辑，无 DOM 依赖） ===================== -->
+<script id="puzzle-core">
+// N ≤ 10，列与颜色的占用状态各用一个整数的位表示，DFS 全程零分配。
+function solveAll(grid, N, limit = 2) {
+  const sols = [];
+  const perm = new Int16Array(N);
+  (function dfs(r, prevC, colMask, colorMask) {
+    if (sols.length >= limit) return;
+    if (r === N) { sols.push(Array.from(perm)); return; }
+    const base = r * N;
+    for (let c = 0; c < N; c++) {
+      const cb = 1 << c;
+      if (colMask & cb) continue;
+      if (r > 0 && Math.abs(c - prevC) < 2) continue;
+      const k = grid[base + c], kb = 1 << k;
+      if (colorMask & kb) continue;
+      perm[r] = c;
+      dfs(r + 1, c, colMask | cb, colorMask | kb);
+      if (sols.length >= limit) return;
+    }
+  })(0, -99, 0, 0);
+  return sols;
+}
+
+function randomSolution(N, rnd) {
+  const perm = new Int16Array(N), used = new Uint8Array(N);
+  function dfs(r) {
+    if (r === N) return true;
+    const cols = [];
+    for (let c = 0; c < N; c++) if (!used[c] && (r === 0 || Math.abs(c - perm[r - 1]) >= 2)) cols.push(c);
+    for (let i = cols.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [cols[i], cols[j]] = [cols[j], cols[i]];
+    }
+    for (const c of cols) {
+      used[c] = 1; perm[r] = c;
+      if (dfs(r + 1)) return true;
+      used[c] = 0;
+    }
+    return false;
+  }
+  return dfs(0) ? Array.from(perm) : null;
+}
+
+const sameSol = (a, b) => a.every((v, i) => v === b[i]);
+
+function colorCounts(grid, N) {
+  const cnt = new Int16Array(N);
+  for (let i = 0; i < grid.length; i++) cnt[grid[i]]++;
+  return cnt;
+}
+
+/* ---------- 连通色块布局 ---------- */
+function nb4(i, N) {
+  const r = (i / N) | 0, c = i % N, out = [];
+  if (r > 0) out.push(i - N);
+  if (r < N - 1) out.push(i + N);
+  if (c > 0) out.push(i - 1);
+  if (c < N - 1) out.push(i + 1);
+  return out;
+}
+function shuffle(a, rnd) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 以目标解的 N 个动物格为种子，多源 BFS 随机生长出 N 片连通色块；
+// 每片恰好含一个动物格，因此目标解天然合法，且同色方块一定连成一片。
+function growRegions(N, target, rnd) {
+  const grid = new Int16Array(N * N).fill(-1);
+  const fronts = Array.from({ length: N }, () => []);
+  const sizes = new Int16Array(N);
+  target.forEach((c, k) => {
+    const s = k * N + c;
+    grid[s] = k; sizes[k] = 1;
+    for (const n of nb4(s, N)) if (grid[n] === -1) fronts[k].push(n);
+  });
+  let filled = N;
+  while (filled < N * N) {
+    // 总是让当前最小的色块继续生长，使各片大小接近
+    let k = -1, best = Infinity;
+    for (let t = 0; t < N; t++) if (fronts[t].length && sizes[t] < best) { best = sizes[t]; k = t; }
+    if (k < 0) break;
+    const f = fronts[k];
+    const p = Math.floor(rnd() * f.length);
+    const i = f[p]; f[p] = f[f.length - 1]; f.pop();
+    if (grid[i] !== -1) continue;
+    grid[i] = k; sizes[k]++; filled++;
+    for (const n of nb4(i, N)) if (grid[n] === -1) f.push(n);
+  }
+  for (let i = 0; i < N * N; i++) if (grid[i] === -1) grid[i] = 0;
+  return grid;
+}
+
+function connected(grid, N, k) {
+  let start = -1, count = 0;
+  for (let i = 0; i < N * N; i++) if (grid[i] === k) { if (start < 0) start = i; count++; }
+  if (count === 0) return false;
+  const seen = new Uint8Array(N * N), q = [start];
+  seen[start] = 1;
+  let v = 0;
+  while (q.length) {
+    const i = q.pop(); v++;
+    for (const n of nb4(i, N)) if (!seen[n] && grid[n] === k) { seen[n] = 1; q.push(n); }
+  }
+  return v === count;
+}
+
+// 只判断「移走 a 后原色块是否仍连通」：a 的同色邻居 ≤1 个时必连通，
+// 否则从第一个邻居做局部搜索，看能否到达所有其它同色邻居。
+// 目标色块因与 a 相邻，加入后必然连通，无需重复检查。
+function removable(grid, N, a, seen, stamp) {
+  const x = grid[a], L = [];
+  for (const n of nb4(a, N)) if (grid[n] === x) L.push(n);
+  if (L.length <= 1) return true;
+  const q = [L[0]]; seen[L[0]] = stamp.v;
+  while (q.length) {
+    const i = q.pop();
+    for (const n of nb4(i, N)) {
+      if (grid[n] === x && n !== a && seen[n] !== stamp.v) { seen[n] = stamp.v; q.push(n); }
+    }
+  }
+  return L.every(n => seen[n] === stamp.v);
+}
+// 每关允许的最小色块尺寸：generatePuzzle 会随机设成 1 / 2 / 3，
+// 于是 1~2 格的小色块会自然出现，也保留一部分从 3 格起步的关卡，组合更丰富。
+// 生成过程是同步的，用模块级变量传递最省事（Worker 内同样同步，不会串味）。
+let MIN_REGION = 3;
+function canMove(grid, N, a, y, sizes, cap, seen, stamp) {
+  const x = grid[a];
+  if (y === x || sizes[x] <= MIN_REGION || sizes[y] >= cap) return false;
+  stamp.v++;
+  if (!removable(grid, N, a, seen, stamp)) return false;
+  grid[a] = y; sizes[x]--; sizes[y]++;
+  return true;
+}
+// 邻居按「目标色块从小到大」排序，倾向把大块的边界格匀给小块
+function orderedNeighbors(a, N, grid, sizes, rnd) {
+  const ns = shuffle(nb4(a, N).slice(), rnd);
+  ns.sort((p, q) => sizes[grid[p]] - sizes[grid[q]]);
+  return ns;
+}
+// 把多余解中的一格划给相邻色块 → 该解出现重复色而失效；动物格不动，目标解始终有效
+function repair(grid, N, alt, target, rnd, sizes, cap, seen, stamp) {
+  const animal = new Set(target.map((c, r) => r * N + c));
+  const candA = [];
+  for (let r = 0; r < N; r++) { const i = r * N + alt[r]; if (!animal.has(i)) candA.push(i); }
+  shuffle(candA, rnd);
+  for (const a of candA) {
+    for (const n of orderedNeighbors(a, N, grid, sizes, rnd)) {
+      if (canMove(grid, N, a, grid[n], sizes, cap, seen, stamp)) return true;
+    }
+  }
+  return false;
+}
+// 卡住时做一次中性边界扰动，改变解集以跳出僵局
+function neutralMove(grid, N, target, rnd, sizes, cap, seen, stamp) {
+  const animal = new Set(target.map((c, r) => r * N + c));
+  const cand = [];
+  for (let i = 0; i < N * N; i++) if (!animal.has(i)) cand.push(i);
+  shuffle(cand, rnd);
+  for (let t = 0; t < Math.min(cand.length, 50); t++) {
+    const a = cand[t];
+    for (const n of orderedNeighbors(a, N, grid, sizes, rnd)) {
+      if (canMove(grid, N, a, grid[n], sizes, cap, seen, stamp)) return true;
+    }
+  }
+  return false;
+}
+function validate(grid, N, target) {
+  const sols = solveAll(grid, N, 5);
+  if (sols.length !== 1 || !sameSol(sols[0], target)) return false;
+  for (let k = 0; k < N; k++) if (!connected(grid, N, k)) return false;
+  return true;
+}
+
+/* ---------- 纯逻辑推理引擎 ----------
+   只用玩家能用的确定性规则，不做假设 / 回溯：
+     R1 某行/列/区域已有动物 → 其余格排除
+     R2 动物 8 邻域排除
+     R3 locked candidates：单元 A 的候选全落在单元 B 内 → B 其余格排除
+     R4 相邻两行动物列至少差 2
+     R5 单元只剩一个候选 → 必是动物
+   全部 sound，所以「推完全部 N 只」自动蕴含唯一解，玩家无需猜。
+   explain=true 时记录每格的排除理由，供「给点提示」讲解。 */
+function buildUnits(grid, N) {
+  const U = [], rows = Array.from({ length: N }, () => []),
+    cols = Array.from({ length: N }, () => []), regMap = new Map();
+  for (let i = 0; i < N * N; i++) {
+    const r = (i / N) | 0, c = i % N, k = grid[i];
+    rows[r].push(i); cols[c].push(i);
+    // 区域按「实际出现的颜色」分组：正常关卡是 0~N-1，教学关可能用 0/1/2/6/7 这种跳号色
+    if (!regMap.has(k)) regMap.set(k, []);
+    regMap.get(k).push(i);
+  }
+  for (let v = 0; v < N; v++) U.push({ type: 0, v, cells: Int16Array.from(rows[v]) });  // 行
+  for (let v = 0; v < N; v++) U.push({ type: 1, v, cells: Int16Array.from(cols[v]) });  // 列
+  for (const [k, list] of regMap) U.push({ type: 2, v: k, cells: Int16Array.from(list) });  // 区域
+  return U;
+}
+function logicalSolve(grid, N, known, explain = false) {
+  const L = N * N, U = buildUnits(grid, N), NU = U.length;
+  const possible = new Uint8Array(L).fill(1), determined = new Uint8Array(L);
+  const reason = explain ? new Array(L).fill(null) : null;
+  const whyFound = explain ? new Array(L).fill(null) : null;
+  const unitMask = new Int32Array(L);
+  U.forEach((u, ui) => { for (const i of u.cells) unitMask[i] |= 1 << ui; });
+  const mark = new Int32Array(L); let stamp = 0;
+  const R = (rule, o) => explain ? Object.assign({ rule }, o) : null;
+  const exclude = (i, r) => {
+    if (!possible[i] || determined[i]) return false;
+    possible[i] = 0;
+    if (explain && !reason[i]) reason[i] = r;
+    return true;
+  };
+  const determine = i => { if (determined[i]) return false; determined[i] = 1; possible[i] = 1; return true; };
+  if (known) {
+    for (const i of known.found || []) determine(i);
+    for (const i of known.excluded || []) exclude(i, R('given', {}));
+  }
+  let changed = true, rounds = 0;
+  while (changed && rounds++ < 60) {
+    changed = false;
+    for (let ui = 0; ui < NU; ui++) {                       // R1
+      const cells = U[ui].cells; let f = -1;
+      for (let k = 0; k < cells.length; k++) if (determined[cells[k]]) { f = cells[k]; break; }
+      if (f < 0) continue;
+      const rr = R('unitFound', { unit: U[ui].type, v: U[ui].v, by: f, evidence: [f] });
+      for (let k = 0; k < cells.length; k++) {
+        const i = cells[k];
+        if (i !== f && exclude(i, rr)) changed = true;
+      }
+    }
+    for (let i = 0; i < L; i++) if (determined[i]) {         // R2
+      const r = (i / N) | 0, c = i % N;
+      const rr = R('adjacent', { by: i, evidence: [i] });
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        const rr2 = r + dr, cc = c + dc;
+        if (rr2 < 0 || rr2 >= N || cc < 0 || cc >= N) continue;
+        if (exclude(rr2 * N + cc, rr)) changed = true;
+      }
+    }
+    for (let ai = 0; ai < NU; ai++) {                        // R3
+      const A = U[ai], cells = A.cells;
+      let m = -1, cnt = 0;
+      for (let k = 0; k < cells.length; k++) if (possible[cells[k]]) { m &= unitMask[cells[k]]; cnt++; }
+      if (!cnt) continue;
+      stamp++;
+      const candA = [];
+      for (let k = 0; k < cells.length; k++) if (possible[cells[k]]) { mark[cells[k]] = stamp; if (explain) candA.push(cells[k]); }
+      for (let bi = 0; bi < NU; bi++) {
+        if (U[bi].type === A.type || !(m & (1 << bi))) continue;
+        const B = U[bi];
+        const rb = R('locked', { from: A.type, fv: A.v, to: B.type, tv: B.v, evidence: candA });
+        for (let k = 0; k < B.cells.length; k++) {
+          const i = B.cells[k];
+          if (mark[i] !== stamp && exclude(i, rb)) changed = true;
+        }
+      }
+    }
+    for (let r = 0; r < N - 1; r++) {                        // R4
+      const S = [], T = [];
+      for (let c = 0; c < N; c++) { if (possible[r * N + c]) S.push(c); if (possible[(r + 1) * N + c]) T.push(c); }
+      const evS = explain ? T.map(t => (r + 1) * N + t) : null, evT = explain ? S.map(s => r * N + s) : null;
+      for (const c of S) if (T.every(t => Math.abs(c - t) < 2) &&
+        exclude(r * N + c, R('pairGap', { row: r, other: r + 1, evidence: evS }))) changed = true;
+      for (const c of T) if (S.every(s => Math.abs(c - s) < 2) &&
+        exclude((r + 1) * N + c, R('pairGap', { row: r + 1, other: r, evidence: evT }))) changed = true;
+    }
+    for (let ui = 0; ui < NU; ui++) {                        // R5
+      const cells = U[ui].cells;
+      let has = false;
+      for (let k = 0; k < cells.length; k++) if (determined[cells[k]]) { has = true; break; }
+      if (has) continue;
+      let cand = -1, n = 0;
+      for (let k = 0; k < cells.length; k++) if (possible[cells[k]]) { cand = cells[k]; n++; }
+      if (n === 1 && determine(cand)) {
+        changed = true;
+        if (explain && !whyFound[cand]) whyFound[cand] = R('unitSingle', { unit: U[ui].type, v: U[ui].v, evidence: [] });
+      }
+    }
+  }
+  const found = []; let excluded = 0;
+  for (let i = 0; i < L; i++) { if (determined[i]) found.push(i); if (!possible[i]) excluded++; }
+  return { possible, determined, reason, whyFound, found, excluded, solved: found.length === N, rounds };
+}
+
+/* 在唯一解基础上继续做边界换区，以「逻辑排除格数」为梯度爬山，
+   直到整关能纯逻辑推完。只移动非动物格，目标解始终合法；
+   若最终 solved，则 sound 推理保证解唯一，无需再消解多余解。 */
+function enhanceLogic(grid, N, target, rnd, maxIter) {
+  const animal = new Set(target.map((c, r) => r * N + c));
+  const sizes = colorCounts(grid, N), cap = 2 * N;
+  const seen = new Int32Array(N * N), stamp = { v: 0 };
+  const score = r => r.solved ? 1e6 : r.excluded * 2 + r.found.length * 6;
+  let cur = logicalSolve(grid, N, null, false), curScore = score(cur);
+  const cand = [];
+  for (let i = 0; i < N * N; i++) if (!animal.has(i)) cand.push(i);
+  let plateau = 0, iters = 0;
+  for (let it = 0; it < maxIter && !cur.solved; it++) {
+    iters++;
+    if (plateau > 50) {                       // 卡住时随机扰动，跳出局部最优
+      for (let t = 0; t < 3; t++) if (!neutralMove(grid, N, target, rnd, sizes, cap, seen, stamp)) break;
+      cur = logicalSolve(grid, N, null, false); curScore = score(cur); plateau = 0;
+      continue;
+    }
+    shuffle(cand, rnd);
+    let acted = false;
+    for (let t = 0; t < Math.min(cand.length, 24); t++) {
+      const a = cand[t], x = grid[a];
+      const ns = shuffle(nb4(a, N).slice(), rnd);
+      for (const n of ns) {
+        const y = grid[n];
+        if (!canMove(grid, N, a, y, sizes, cap, seen, stamp)) continue;
+        const next = logicalSolve(grid, N, null, false), s = score(next);
+        if (s >= curScore || rnd() < 0.05) {
+          cur = next;
+          if (s > curScore) plateau = 0; else plateau++;
+          curScore = s;
+        } else { grid[a] = x; sizes[x]++; sizes[y]--; plateau++; }
+        acted = true;
+        break;
+      }
+      if (acted) break;
+    }
+    if (!acted) break;
+  }
+  const fin = logicalSolve(grid, N, null, false);
+  return { solved: fin.solved, excluded: fin.excluded, grid, iters };
+}
+
+/**
+ * 生成一关：N×N 网格，同色方块连成一片连通区域，每片区域恰好一只动物，
+ * 且每行 / 每列各一只、动物互不相邻，并保证有且仅有一个解。
+ *
+ * 做法：先随机取一个合法的目标解，以其 N 个动物格为种子长出 N 片连通色块；
+ * 再不断找出多余的合法解，把它的一格划给相邻色块，使该解的两个格子落入同一片
+ * 区域而失效（任一合法解必覆盖全部 N 片区域），同时全部色块保持连通、目标解不变。
+ */
+// 唯一解关卡 → 增强到「纯逻辑可解」；失败返回 null 让 generatePuzzle 再试一次布局
+function finishPuzzle(grid, N, target, rnd, steps, restart, wantLogic, logicIter, tries) {
+  if (!wantLogic) return { grid: Array.from(grid), solution: target, N, steps, restart };
+  // 爬山是随机的：同一布局多试几条路径，比整套重新生成布局便宜得多
+  for (let t = 0; t < tries; t++) {
+    const g = Int16Array.from(grid);        // 副本，爬山不改动原布局
+    const r = enhanceLogic(g, N, target, rnd, logicIter);
+    if (!r.solved) continue;
+    let conn = true;
+    for (let k = 0; k < N && conn; k++) if (!connected(g, N, k)) conn = false;
+    if (conn) return { grid: Array.from(g), solution: target, N, steps, restart, logic: true };
+  }
+  return null;
+}
+
+function generatePuzzle(N, opts = {}) {
+  const rnd = opts.rnd || Math.random;
+  // 54轮：避开近期用过的动物摆位，减少关卡之间的雷同感（Set of solution.join(',')）
+  const avoid = opts.avoid instanceof Set ? opts.avoid : null;
+  const restarts = opts.restarts || 20;
+  const candidates = opts.candidates || 4;
+  const maxSteps = opts.maxSteps || 150;
+  const stagnantMax = opts.stagnant || 20;
+  const cap = 2 * N;
+  const wantLogic = opts.logic !== false;
+  const logicIter = opts.logicIter || (N >= 9 ? 900 : 600);
+  const logicTries = opts.logicTries || 3;
+  // 本关的最小色块尺寸：1 / 2 / 3 等概率，让 1~2 格的小色块也能出现
+  MIN_REGION = opts.minRegion != null ? opts.minRegion : (1 + Math.floor(rnd() * 3));
+  let fallback = null;   // 万一始终推不到完全可解，至少退回普通的唯一解关卡
+  for (let restart = 0; restart < restarts; restart++) {
+    let target = randomSolution(N, rnd);
+    if (!target) continue;
+    if (avoid && avoid.size) {
+      let tries = 0;
+      while (avoid.has(target.join(',')) && tries < 24) { target = randomSolution(N, rnd); tries++; }
+    }
+    // 先生成若干候选布局，挑解数最少的一个作为修复起点
+    let bestGrid = null, bestCount = Infinity;
+    for (let t = 0; t < candidates; t++) {
+      const g = growRegions(N, target, rnd);
+      const c = solveAll(g, N, 9).length;
+      if (c < bestCount) { bestCount = c; bestGrid = g; }
+      if (c === 1) break;
+    }
+    if (!bestGrid) continue;
+    const grid = bestGrid;
+    const sizes = colorCounts(grid, N);
+    const seen = new Int32Array(N * N), stamp = { v: 0 };
+    if (bestCount === 1 && validate(grid, N, target)) {
+      const done = finishPuzzle(grid, N, target, rnd, 0, restart, wantLogic, logicIter, logicTries);
+      if (done) return done;
+      if (!fallback) fallback = { grid: Array.from(grid), solution: target, N, steps: 0, restart };
+      continue;
+    }
+    let steps = 0, stagnant = 0;
+    while (steps < maxSteps && stagnant < stagnantMax) {
+      const two = solveAll(grid, N, 2);
+      if (two.length === 1) {
+        if (validate(grid, N, target)) {
+          const done = finishPuzzle(grid, N, target, rnd, steps, restart, wantLogic, logicIter, logicTries);
+          if (done) return done;
+          if (!fallback) fallback = { grid: Array.from(grid), solution: target, N, steps, restart };
+        }
+        break;
+      }
+      const alt = two.find(s => !sameSol(s, target));
+      if (alt && repair(grid, N, alt, target, rnd, sizes, cap, seen, stamp)) stagnant = 0;
+      else if (neutralMove(grid, N, target, rnd, sizes, cap, seen, stamp)) stagnant++;
+      else break;
+      steps++;
+    }
+  }
+  if (fallback) return fallback;
+  // 极端情况：本次所有 restart 都卡住没收敛到唯一解，退一步只要求唯一解（递归一次，不会再次进入本分支）
+  if (wantLogic) return generatePuzzle(N, Object.assign({}, opts, { logic: false, restarts: Math.max(restarts, 8) }));
+  return null;
+}
+
+globalThis.PuzzleCore = { solveAll, generatePuzzle, colorCounts, connected, logicalSolve, buildUnits, enhanceLogic };
+</script>
+
+<!-- ===================== 界面与交互 ===================== -->
+<script>
+(function () {
+  'use strict';
+
+  // 明暗交替，保证相邻颜色也能一眼分辨（按颜色推理是核心规则）
+  const PALETTE = [
+    { c:'#EC5A63', name:'红' }, { c:'#E98A33', name:'橙' }, { c:'#F5CE3E', name:'黄' },
+    { c:'#8FBE3C', name:'黄绿' }, { c:'#2BA36B', name:'绿' }, { c:'#35C2C6', name:'青' },
+    { c:'#3E7FD6', name:'蓝' }, { c:'#9A6BE0', name:'紫' }, { c:'#E76AAF', name:'粉' },
+    { c:'#7E8AA0', name:'灰蓝' }
+  ];
+  const LEVELS = [5, 6, 7, 8, 9];
+  const HP_BY_N = { 5:3, 6:3, 7:4, 8:4, 9:5 };
+  const MAX_HINTS = 3;
+  const SAVE_KEY = 'findcow_campaign_v1';
+  const RANDOM_FROM = 26;      // 前 25 关固定阶梯，第 26 关起每关随机 5×5~9×9
+  const EMPTY = 0, MARK = 1, WRONG = 2, FOUND = 3;
+  // 白叉来源：0 无 / 1 玩家手动 / 2 自动排除。只用于「清除标记」区分，不改变标记本身的显示与规则。
+  const SRC_NONE = 0, SRC_MANUAL = 1, SRC_AUTO = 2;
+
+  const SVG = {
+    cow: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 20C9 15 6 10 8 7c5 1 9 5 12 10z" fill="#E8C98F"/>
+      <path d="M49 20c6-5 9-10 7-13-5 1-9 5-12 10z" fill="#E8C98F"/>
+      <ellipse cx="12" cy="29" rx="9" ry="5.5" fill="#6B5342" transform="rotate(-22 12 29)"/>
+      <ellipse cx="52" cy="29" rx="9" ry="5.5" fill="#6B5342" transform="rotate(22 52 29)"/>
+      <rect x="12" y="14" width="40" height="38" rx="18" fill="#FFF8EF" stroke="#E8DAC8" stroke-width="1.4"/>
+      <path d="M40 17c8-2 12 4 10 10-2 6-8 5-10 1-2-4-3-9 0-11z" fill="#54443A"/>
+      <circle cx="25" cy="31" r="3.1" fill="#3B2E28"/><circle cx="39" cy="31" r="3.1" fill="#3B2E28"/>
+      <circle cx="26" cy="30" r="1" fill="#fff"/><circle cx="40" cy="30" r="1" fill="#fff"/>
+      <ellipse cx="32" cy="43" rx="12" ry="8" fill="#F5B9BE"/>
+      <ellipse cx="27" cy="43" rx="2" ry="2.6" fill="#C97F88"/><ellipse cx="37" cy="43" rx="2" ry="2.6" fill="#C97F88"/>
+    </svg>`,
+    cat: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 27 11 8l16 10z" fill="#F4A94A"/><path d="M51 27 53 8 37 18z" fill="#F4A94A"/>
+      <path d="M15 23 14 13l9 6z" fill="#F7C7C9"/><path d="M49 23 50 13l-9 6z" fill="#F7C7C9"/>
+      <circle cx="32" cy="34" r="22" fill="#F7B95C"/>
+      <circle cx="24" cy="32" r="3" fill="#3B2E28"/><circle cx="40" cy="32" r="3" fill="#3B2E28"/>
+      <circle cx="25" cy="31" r="1" fill="#fff"/><circle cx="41" cy="31" r="1" fill="#fff"/>
+      <path d="M29 40h6l-3 3z" fill="#E37A86"/>
+      <path d="M32 43q-4 5-7 1M32 43q4 5 7 1" stroke="#6A4A32" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M18 40 9 38m9 6-8 2m28-6 9-2m-9 6 8 2" stroke="#9B7448" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`,
+    whiteX: `<svg viewBox="0 0 100 100"><path d="M27 27 73 73M73 27 27 73" stroke="#fff" stroke-width="13" stroke-linecap="round" opacity=".95"/></svg>`,
+    redX: `<svg viewBox="0 0 100 100"><path d="M24 24 76 76M76 24 24 76" stroke="#FF5963" stroke-width="13" stroke-linecap="round"/></svg>`,
+    heart: `<svg viewBox="0 0 24 24" fill="#F2626B"><path d="M12 21s-8.2-5-8.2-10.6A4.6 4.6 0 0 1 12 7.2a4.6 4.6 0 0 1 8.2 3.2C20.2 16 12 21 12 21z"/></svg>`,
+    soundOn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>`,
+    soundOff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m16 9 5 6m0-6-5 6"/></svg>`
+  };
+  // 去掉模板字符串里的缩进空白，避免它们混进弹窗文本
+  for (const k of Object.keys(SVG)) SVG[k] = SVG[k].replace(/\n\s*/g, '');
+
+  const $ = id => document.getElementById(id);
+  const el = {
+    app:$('app'), logo:$('logo'), rulesBtn:$('rulesBtn'), soundBtn:$('soundBtn'),
+    modeScreen:$('modeScreen'), modeLogo:$('modeLogo'), modeProgress:$('modeProgress'),
+    modeGoCampaign:$('modeGoCampaign'), resetProgressBtn:$('resetProgressBtn'),
+    modeLabel:$('modeLabel'), difficultyLabel:$('difficultyLabel'),
+    campaignInfo:$('campaignInfo'), lvNum:$('lvNum'), lvSize:$('lvSize'), lvStage:$('lvStage'), lvBest:$('lvBest'),
+    tutorialBar:$('tutorialBar'), tutStep:$('tutStep'), tutMsg:$('tutMsg'), tutSkip:$('tutSkip'),
+    levelSeg:$('levelSeg'), homeBtn:$('homeBtn'), targetPill:$('targetPill'), hearts:$('hearts'),
+    found:$('found'), total:$('total'), hintsLeft:$('hintsLeft'), clock:$('clock'),
+    boardWrap:$('boardWrap'), board:$('board'), colDots:$('colDots'), rowDots:$('rowDots'),
+    generating:$('generating'),
+    legend:$('legend'), clearMarksBtn:$('clearMarksBtn'), toolbarNote:$('toolbarNote'),
+    hintBtn:$('hintBtn'), restartBtn:$('restartBtn'), newBtn:$('newBtn'),
+    hintCard:$('hintCard'), hintWhere:$('hintWhere'), hintWhy:$('hintWhy'),
+    hintApply:$('hintApply'), hintNext:$('hintNext'), hintClose:$('hintClose'), hintLeft:$('hintLeft'),
+    rulesPanel:$('rulesPanel'), overlay:$('overlay'), modal:$('modal')
+  };
+
+  const state = {
+    N:7, grid:[], solution:[], cells:[], markSource:new Uint8Array(0),
+    hp:4, maxHp:4, found:0, hints:MAX_HINTS,
+    theme:'cow', sound:true,   // theme 每关由 buildPuzzle 随机决定，不提供手动切换
+    gameMode:'practice', practiceN:7, pendingN:7, winCounted:false, activeLevel:1,
+    tutorialStep:0, tutLock:false, tutShownStep:-1, tutHidRules:false,
+    focus:null, over:false, started:false, startAt:0, timer:null,
+    puzzleData:null, clickTimer:null, lastPop:-1,
+    hintFocus:null, pendingHint:null, hintSeen:[]
+  };
+
+  /* ---------- 闯关模式进度 ----------
+     只存关卡号 / 最高关 / 累计通关数；难度由关卡号推算，不落盘。
+     file:// 下 localStorage 可能不可用，全部 try/catch，失败时仅本次会话生效。 */
+  function loadProgress() {
+    try {
+      const o = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (o && Number.isFinite(o.level) && o.level >= 1) {
+        const lv = Math.max(1, Math.floor(o.level));
+        return {
+          level: lv,
+          best: Math.max(lv, Math.floor(o.best) || 1),
+          cleared: Math.max(0, Math.floor(o.cleared) || 0)
+        };
+      }
+    } catch (err) {}
+    return { level: 1, best: 1, cleared: 0 };
+  }
+  let progress = loadProgress();
+  function saveProgress() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); } catch (err) {}
+  }
+  // 前 25 关每 5 关升一档（1~5:5×5 … 21~25:9×9）；第 26 关起等概率随机 5~9。
+  // rnd 参数只供自动化测试注入，界面始终用 Math.random。
+  function levelSize(level, rnd) {
+    if (level < RANDOM_FROM) return 5 + Math.floor((level - 1) / 5);
+    return 5 + Math.floor((rnd || Math.random)() * 5);
+  }
+
+  /* 按住拖动 = 标记画笔。
+     起点决定笔刷：从空格起拖是「连续标叉」，从白叉格起拖是「连续取消」。
+     沿途格子统一设成同一个值而不是逐个 toggle，来回滑不会把标记又翻回去。 */
+  let drag = null;                 // 当前拖拽会话
+  let suppressClickUntil = 0;      // 拖拽结束后短暂吞掉浏览器补发的 click / dblclick
+
+  /* ---------- 音效 ---------- */
+  let audioCtx = null;
+  function tone(freq, dur, type, vol, delay) {
+    if (!state.sound) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t = audioCtx.currentTime + (delay || 0);
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.06, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) { /* 音频不可用时静默 */ }
+  }
+  const sfx = {
+    mark:  () => tone(520, 0.055, 'sine', 0.035),
+    found: () => { tone(660, 0.13, 'sine', 0.07); tone(990, 0.18, 'sine', 0.06, 0.09); },
+    wrong: () => { tone(190, 0.2, 'sawtooth', 0.045); tone(140, 0.25, 'sine', 0.05, 0.07); },
+    win:   () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, 'sine', 0.07, i * 0.11)),
+    lose:  () => [392, 330, 262].forEach((f, i) => tone(f, 0.3, 'triangle', 0.06, i * 0.13)),
+    hint:  () => { tone(740, 0.1, 'sine', 0.05); tone(880, 0.12, 'sine', 0.04, 0.08); }
+  };
+
+  /* ---------- 计时 ---------- */
+  function startClock() {
+    if (state.started || state.over) return;
+    state.started = true; state.startAt = Date.now();
+    state.timer = setInterval(() => {
+      const s = Math.floor((Date.now() - state.startAt) / 1000);
+      el.clock.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }, 500);
+  }
+  function stopClock() { clearInterval(state.timer); state.timer = null; }
+  function elapsed() {
+    return state.started ? Math.floor((Date.now() - state.startAt) / 1000) : 0;
+  }
+
+  /* ---------- 关卡 ----------
+     用后台线程构造关卡，大棋盘也不会卡住界面；空闲时预生成一关缓存，换关直接取用。
+     若浏览器不允许 blob Worker（部分 file:// 场景），自动退回同步生成。 */
+  let genWorker;                  // undefined=未初始化，null=不可用
+  let genSeq = 0;
+  const genPending = new Map();
+  /* 54轮：记录每种尺寸最近用过的动物摆位，生成时避开，减少关卡雷同。
+     5×5 理论只有 14 种摆位，窗口取 8；大盘解多，窗口大点也无妨。 */
+  const AVOID_WINDOW = 8;
+  const recentSolutions = new Map();   // N -> [solution 指纹, ...]
+  function avoidSet(N) {
+    return new Set(recentSolutions.get(N) || []);
+  }
+  function rememberSolution(N, solution) {
+    if (!solution) return;
+    const key = solution.join(',');
+    const list = recentSolutions.get(N) || [];
+    if (list[list.length - 1] !== key) list.push(key);   // 连续相同不重复记
+    while (list.length > AVOID_WINDOW) list.shift();
+    recentSolutions.set(N, list);
+  }
+  function getWorker() {
+    if (genWorker !== undefined) return genWorker;
+    try {
+      const src = document.getElementById('puzzle-core').textContent +
+        '\nself.onmessage=function(e){var av=e.data.avoid?new Set(e.data.avoid):null;var p=generatePuzzle(e.data.n,{avoid:av})||generatePuzzle(e.data.n,{avoid:av});self.postMessage({id:e.data.id,p:p});};';
+      const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+      const w = new Worker(url);
+      URL.revokeObjectURL(url);
+      w.onmessage = ev => {
+        const task = genPending.get(ev.data.id);
+        if (task) { genPending.delete(ev.data.id); task.cb(ev.data.p); }
+      };
+      w.onerror = () => {
+        genWorker = null;
+        try { w.terminate(); } catch (err) {}
+        const left = [...genPending.values()];
+        genPending.clear();
+        for (const task of left) task.cb(PuzzleCore.generatePuzzle(task.n, { avoid: task.avoid }));
+      };
+      genWorker = w;
+    } catch (err) { genWorker = null; }
+    return genWorker;
+  }
+  function asyncGenerate(N, cb) {
+    const av = avoidSet(N);
+    const w = getWorker();
+    if (!w) {
+      // 没有后台线程：先让提示画出来，再同步构造，避免界面毫无反馈地卡住
+      el.generating.hidden = false;
+      setTimeout(() => cb(PuzzleCore.generatePuzzle(N, { avoid: av }) || PuzzleCore.generatePuzzle(N, { avoid: av })), 30);
+      return;
+    }
+    const id = ++genSeq;
+    genPending.set(id, { n: N, cb, avoid: av });
+    w.postMessage({ id, n: N, avoid: [...av] });
+  }
+  const puzzleCache = new Map();
+  const preloading = new Set();
+  function preloadPuzzle(N) {
+    if (!getWorker()) return;   // 无后台线程时不做预生成，以免抢占主线程
+    if (puzzleCache.has(N) || preloading.has(N)) return;
+    preloading.add(N);
+    setTimeout(() => {
+      if (puzzleCache.has(N)) { preloading.delete(N); return; }
+      asyncGenerate(N, p => { preloading.delete(N); if (p) puzzleCache.set(N, p); });
+    }, 90);
+  }
+  /* ---------- 每关随机主题 ----------
+     取消「找牛 / 找猫」手动切换：每次生成新关卡时随机定一种，
+     顶栏 logo、状态栏提示、翻开的动物头像、通关图标都跟着变。
+     重玩本关不走 buildPuzzle，所以同一关的主题保持不变。 */
+  function applyTheme() {
+    const cow = state.theme === 'cow';
+    el.logo.innerHTML = SVG[state.theme];
+    el.targetPill.textContent = cow ? '本关找牛' : '本关找猫';
+    el.targetPill.title = cow ? '这一关要找的是牛' : '这一关要找的是猫';
+  }
+  function rollTheme() {
+    state.theme = Math.random() < 0.5 ? 'cow' : 'cat';
+    applyTheme();
+  }
+
+  function buildPuzzle(N, provided) {
+    cancelDrag();
+    clearHint();
+    suppressClickUntil = 0;
+    let p = provided;
+    if (!p) {
+      p = puzzleCache.get(N);
+      if (p) puzzleCache.delete(N);
+      else p = PuzzleCore.generatePuzzle(N, { avoid: avoidSet(N) }) || PuzzleCore.generatePuzzle(N);
+    }
+    if (!p) { el.generating.hidden = true; return false; }
+    if (state.gameMode === 'tutorial') { state.theme = 'cow'; applyTheme(); }   // 教学关固定找牛
+    else rollTheme();
+    state.N = N;
+    state.grid = p.grid;
+    state.solution = p.solution;
+    if (state.gameMode !== 'tutorial') rememberSolution(N, p.solution);   // 教学固定关不记入避重
+    state.puzzleData = p;
+    state.cells = new Array(N * N).fill(EMPTY);
+    state.markSource = new Uint8Array(N * N);
+    state.pendingN = N;
+    state.maxHp = state.hp = HP_BY_N[N] || 4;
+    state.found = 0; state.hints = MAX_HINTS;
+    // 教学模式放宽血量与提示，新手不会卡死
+    if (state.gameMode === 'tutorial') { state.maxHp = state.hp = TUTORIAL_HP; state.hints = TUTORIAL_HINTS; }
+    state.over = false; state.started = false; state.startAt = 0;
+    state.focus = null; state.lastPop = -1;
+    stopClock(); el.clock.textContent = '00:00';
+    el.overlay.classList.remove('show');
+    buildBoard();
+    paint();
+    el.generating.hidden = true;
+    if (state.gameMode === 'tutorial') state.tutLock = false;   // 新棋盘就绪，开始判定本步
+    updateModeUI();
+    fitBoard();
+    if (state.gameMode !== 'tutorial') preloadPuzzle(N);
+    return true;
+  }
+  // 生成很快时不打扰用户，超过 130ms 才显示「正在生成关卡」。
+  // requestSeq 用来丢弃过期回调：快速切换模式 / 连点换关时，旧关卡不能覆盖新关卡。
+  let requestSeq = 0;
+  function requestPuzzle(N) {
+    if (state.gameMode === 'tutorial') { requestSeq++; buildPuzzle(5, TUT_PUZZLE); return; }   // 教学关用固定布局
+    const seq = ++requestSeq;
+    const cached = puzzleCache.get(N);
+    if (cached) { puzzleCache.delete(N); buildPuzzle(N, cached); return; }
+    const t = setTimeout(() => { if (seq === requestSeq) el.generating.hidden = false; }, 130);
+    asyncGenerate(N, p => {
+      clearTimeout(t);
+      if (seq !== requestSeq) return;
+      if (!p) p = PuzzleCore.generatePuzzle(N, { avoid: avoidSet(N) });
+      if (!p) { el.generating.hidden = true; return; }
+      buildPuzzle(N, p);
+    });
+  }
+
+  /* ---------- 教学模式 ----------
+     一个固定的 5×5 教学关，拆成 6 步引导：每步只在棋盘上高亮「现在该点的格子」，
+     棋盘上方的气泡说明这一步在教哪条规则。教学关**不自动排除**，所有白叉都要
+     玩家自己标，这样「行 / 列 / 区域 / 不相邻」四条规则才会被真正练到。 */
+  const TUTORIAL_HP = 9, TUTORIAL_HINTS = 99;
+
+  // 固定布局（0 红 / 1 橙 / 2 黄 / 6 蓝 / 7 紫），与设计器里画的一致
+  const TUT_GRID = [
+    2, 2, 2, 2, 1,
+    2, 7, 7, 7, 1,
+    7, 7, 0, 1, 1,
+    7, 7, 7, 6, 6,
+    6, 6, 6, 6, 6
+  ];
+  const TUT_SOLUTION = [1, 4, 2, 0, 3];        // 每行动物所在列（0 起）
+  const TUT_PUZZLE = { grid: TUT_GRID, solution: TUT_SOLUTION, logic: true };
+
+  const ti = (r, c) => (r - 1) * 5 + (c - 1);  // 1 起坐标 → 索引
+  function tutRow(r) { const a = []; for (let c = 1; c <= 5; c++) a.push(ti(r, c)); return a; }
+  function tutCol(c) { const a = []; for (let r = 1; r <= 5; r++) a.push(ti(r, c)); return a; }
+  function tutRing(r, c) {
+    const a = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const rr = r + dr, cc = c + dc;
+      if (rr >= 1 && rr <= 5 && cc >= 1 && cc <= 5) a.push(ti(rr, cc));
+    }
+    return a;
+  }
+  function tutColor(k) {
+    const a = [];
+    for (let i = 0; i < 25; i++) if (TUT_GRID[i] === k) a.push(i);
+    return a;
+  }
+  // 只留「还没被处理」的格子：高亮该闪的、以及判断这步做完没有，都用它
+  function tutTodo(list) {
+    return Array.from(new Set(list)).filter(i => state.cells[i] === EMPTY);
+  }
+
+  const TUT_STEPS = [
+    {
+      // ① 红色只有一格，先学会双击翻开
+      msg: '请双击红色格子',
+      hl: () => tutTodo([ti(3, 3)]),
+      done: () => state.cells[ti(3, 3)] === FOUND
+    },
+    {
+      // ② 翻开后，同行 / 同列 / 周围一圈都排除 —— 由玩家自己标
+      msg: '动物所在格子周围一圈以及所在的横向和纵向都不会再出现另一只动物，请单击高亮格子进行标记',
+      hl: () => tutTodo([...tutRow(3), ...tutCol(3), ...tutRing(3, 3)]),
+      done: () => tutTodo([...tutRow(3), ...tutCol(3), ...tutRing(3, 3)]).length === 0
+    },
+    {
+      // ③ 紫色区域被排除到只剩一格 → 每片区域一只
+      msg: '每个颜色只有一只动物，请双击',
+      hl: () => tutTodo(tutColor(7)),
+      done: () => state.cells[ti(4, 1)] === FOUND
+    },
+    {
+      // ④ 翻开后同样要自己排除
+      msg: '请单击标记',
+      hl: () => tutTodo([...tutRow(4), ...tutCol(1), ...tutRing(4, 1)]),
+      done: () => tutTodo([...tutRow(4), ...tutCol(1), ...tutRing(4, 1)]).length === 0
+    },
+    {
+      // ⑤ 第 2 列整列高亮（用户要求：整列一起闪，不是只闪剩下的那一格）
+      msg: '每行每列都有且只有一只动物，请把他双击找出',
+      hl: () => tutCol(2),
+      done: () => state.cells[ti(1, 2)] === FOUND
+    },
+    {
+      // ⑥ 剩下的两只自己找，通关弹窗收尾
+      msg: '请找出剩下所有动物',
+      hl: () => [],
+      done: () => false
+    }
+  ];
+  function tutStepIndex() { return Math.min(state.tutorialStep, TUT_STEPS.length - 1); }
+  function updateTutorialBar() {
+    const step = TUT_STEPS[tutStepIndex()];
+    state.tutShownStep = tutStepIndex();
+    el.tutStep.textContent = (tutStepIndex() + 1) + ' / ' + TUT_STEPS.length;
+    el.tutMsg.textContent = step ? step.msg : '';
+    el.tutorialBar.hidden = state.gameMode !== 'tutorial';
+    // 每换一步重放一次入场动画，把注意力拉回气泡
+    el.tutorialBar.style.animation = 'none';
+    void el.tutorialBar.offsetWidth;
+    el.tutorialBar.style.animation = '';
+    fitBoard();   // 气泡行数变了，棋盘要让位
+  }
+  function startTutorial(step) {
+    state.tutorialStep = Math.max(0, Math.min(TUT_STEPS.length - 1, Number(step) || 0));
+    state.tutLock = false;
+    state.winCounted = false;
+    state.pendingN = 5;
+    el.overlay.classList.remove('show');
+    requestPuzzle(5);
+    updateModeUI();
+  }
+  function skipTutorial() { showModeScreen(); }
+  // 本步做完 → 停一下让玩家看清「高亮消失了」，再进入下一步
+  function checkTutorial() {
+    if (state.gameMode !== 'tutorial' || state.over || state.tutLock) return;
+    const step = tutStepIndex();
+    if (step >= TUT_STEPS.length - 1) return;
+    const st = TUT_STEPS[step];
+    if (!st || !st.done()) return;
+    state.tutLock = true;                 // 锁住，避免这次 paint 反复推进
+    state.tutorialStep = step + 1;
+    updateTutorialBar();
+    setTimeout(() => {
+      if (state.gameMode !== 'tutorial') return;
+      state.tutLock = false;
+      paint();
+    }, 320);
+  }
+
+  /* ---------- 模式与关卡调度 ---------- */
+  function updateModeUI() {
+    const camp = state.gameMode === 'campaign';
+    const tut = state.gameMode === 'tutorial';
+    el.modeLabel.textContent = camp ? '闯关模式' : tut ? '教学模式' : '练习模式';
+    el.levelSeg.hidden = camp || tut;
+    el.difficultyLabel.hidden = camp || tut;
+    el.campaignInfo.hidden = !camp;
+    el.tutorialBar.hidden = !tut;
+    if (tut) updateTutorialBar();
+    if (camp) {
+      const n = state.pendingN || state.N;
+      // 关号一律从 1 起：棋盘当前关；通关后 progress 已指向下一关，这里仍显示刚打完的那关
+      const lv = Math.max(1, state.activeLevel || progress.level || 1);
+      el.lvNum.textContent = lv;
+      el.lvSize.textContent = n + '×' + n;
+      el.lvStage.textContent = lv < RANDOM_FROM ? '阶梯进阶 ' + lv + '/25' : '随机难度';
+      el.lvBest.textContent = '最高 ' + progress.best + ' 关';
+    }
+    el.newBtn.textContent = camp ? '换一题' : tut ? '重来一次' : '换一关';
+    if (el.toolbarNote) el.toolbarNote.textContent = tut
+      ? '教学关不自动排除：白色叉子全部由你自己标，边标边理解每条规则'
+      : '自动排除已默认开启（找到动物后自动标白叉）· 清除标记只清手动标记';
+    el.modeProgress.textContent = '当前第 ' + progress.level + ' 关 · 最高第 ' + progress.best +
+      ' 关 · 累计通关 ' + progress.cleared + ' 关';
+    el.modeGoCampaign.textContent = progress.level > 1
+      ? '继续第 ' + progress.level + ' 关 →' : '开始闯关 →';
+  }
+  function startLevel(level) {
+    const num = Number(level);
+    progress.level = Number.isFinite(num) ? Math.max(1, Math.floor(num)) : 1;
+    state.activeLevel = progress.level;   // 任何情况下都不会出现第 0 关
+    state.winCounted = false;                 // 只有新的一关才重新开放「通关计数」
+    progress.best = Math.max(progress.best, progress.level);
+    const n = levelSize(progress.level);
+    state.pendingN = n;
+    saveProgress();
+    requestPuzzle(n);
+    updateModeUI();
+  }
+  function switchMode(mode) {
+    const prev = state.gameMode;
+    state.gameMode = mode === 'campaign' ? 'campaign'
+      : mode === 'tutorial' ? 'tutorial' : 'practice';
+    // 离开教学模式时把刚才收起的规则面板还原（手机上保持收起，否则又要滚动）
+    if (prev === 'tutorial' && state.gameMode !== 'tutorial' && state.tutHidRules) {
+      state.tutHidRules = false;
+      if (!window.matchMedia('(max-width:560px)').matches) {
+        el.rulesPanel.style.display = '';
+        el.rulesBtn.style.background = '';
+      }
+    }
+    el.modeScreen.hidden = true;
+    el.overlay.classList.remove('show');
+    if (state.gameMode === 'campaign') startLevel(progress.level);
+    else if (state.gameMode === 'tutorial') {
+      // 教学靠气泡一步步讲，规则长文先收起来，免得把棋盘挤到屏幕外
+      el.rulesPanel.style.display = 'none';
+      el.rulesBtn.style.background = 'var(--accent-soft)';
+      state.tutHidRules = true;
+      startTutorial(0);
+    }
+    else { state.pendingN = state.practiceN; requestPuzzle(state.practiceN); }
+    updateModeUI();
+  }
+  function showModeScreen() {
+    el.overlay.classList.remove('show');
+    el.modeScreen.hidden = false;
+    updateModeUI();
+  }
+  function resetProgress() {
+    progress = { level: 1, best: 1, cleared: 0 };
+    saveProgress();
+    if (state.gameMode === 'campaign' && el.modeScreen.hidden) startLevel(1);
+    else updateModeUI();
+  }
+
+  function buildBoard() {
+    const N = state.N;
+    el.boardWrap.style.setProperty('--n', N);
+    el.board.innerHTML = '';
+    el.colDots.innerHTML = '';
+    el.rowDots.innerHTML = '';
+    el.legend.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < N * N; i++) {
+      const b = document.createElement('button');
+      b.className = 'cell';
+      b.dataset.i = i;
+      b.style.setProperty('--c', PALETTE[state.grid[i]].c);
+      b.setAttribute('aria-label', '第' + (Math.floor(i / N) + 1) + '行第' + (i % N + 1) + '列');
+      b.innerHTML = '<span class="glyph"></span>';
+      frag.appendChild(b);
+    }
+    el.board.appendChild(frag);
+    for (let c = 0; c < N; c++) {
+      const d = document.createElement('button');
+      d.className = 'dot'; d.dataset.type = 'col'; d.dataset.v = c;
+      d.textContent = '●'; el.colDots.appendChild(d);
+    }
+    for (let r = 0; r < N; r++) {
+      const d = document.createElement('button');
+      d.className = 'dot'; d.dataset.type = 'row'; d.dataset.v = r;
+      d.textContent = '●'; el.rowDots.appendChild(d);
+    }
+    // 图例只列这一关真正用到的颜色（教学关用的不是 0~N-1 连续色号）
+    const used = [];
+    for (let i = 0; i < N * N; i++) if (used.indexOf(state.grid[i]) < 0) used.push(state.grid[i]);
+    used.sort((a, b) => a - b);
+    for (const k of used) {
+      const chip = document.createElement('button');
+      chip.className = 'chip'; chip.dataset.type = 'color'; chip.dataset.v = k;
+      chip.innerHTML = '<span class="swatch" style="background:' + PALETTE[k].c + '"></span>' + PALETTE[k].name;
+      el.legend.appendChild(chip);
+    }
+    el.total.textContent = N;
+  }
+
+  /* 手机端：按「除棋盘区以外已经占掉的高度」反推棋盘可用宽度，
+     让棋盘 + 状态栏 + 按钮刚好落在一屏内，不用上下滑动。桌面端不介入。 */
+  let fitRaf = 0;
+  function fitBoard() {
+    if (fitRaf) return;
+    fitRaf = requestAnimationFrame(() => {
+      fitRaf = 0;
+      const wrap = el.boardWrap, area = wrap.parentElement;
+      wrap.style.removeProperty('--bw');
+      if (window.innerWidth > 560) return;
+      const appR = el.app.getBoundingClientRect();
+      const areaR = area.getBoundingClientRect();
+      const rest = appR.height - areaR.height;                  // 除棋盘区以外的一切
+      const bubble = el.tutorialBar.hidden ? 0 : el.tutorialBar.getBoundingClientRect().height + 8;
+      // 上下各留 6px 边距；不用 appR.top（垂直居中时它随内容变化，会形成循环）
+      const availH = window.innerHeight - rest - bubble - 17 - 12;
+      const bw = Math.floor(Math.max(200, Math.min(540, availH, area.clientWidth)));
+      wrap.style.setProperty('--bw', bw + 'px');
+    });
+  }
+  window.addEventListener('resize', fitBoard);
+  window.addEventListener('orientationchange', fitBoard);
+
+  /* ---------- 完成状态 ---------- */
+  function foundRows() {
+    const s = new Set();
+    state.solution.forEach((c, r) => { if (state.cells[r * state.N + c] === FOUND) s.add(r); });
+    return s;
+  }
+  function foundCols() {
+    const s = new Set();
+    state.solution.forEach((c, r) => { if (state.cells[r * state.N + c] === FOUND) s.add(c); });
+    return s;
+  }
+  function foundColors() {
+    const s = new Set(), N = state.N;
+    state.solution.forEach((c, r) => {
+      const i = r * N + c;
+      if (state.cells[i] === FOUND) s.add(state.grid[i]);
+    });
+    return s;
+  }
+  function animalSet() {
+    return new Set(state.solution.map((c, r) => r * state.N + c));
+  }
+
+  // 当前「系统已确定没有动物」的格子：已完成的行 / 列 / 颜色 + 已找到动物的一圈。
+  // 自动排除与清除标记共用这一份判定，避免两处规则走偏。
+  function excludedMask() {
+    const N = state.N, mask = new Uint8Array(N * N);
+    const rows = foundRows(), cols = foundCols(), colors = foundColors(), animals = animalSet();
+    for (let i = 0; i < N * N; i++) {
+      if (animals.has(i)) continue;
+      const r = Math.floor(i / N), c = i % N;
+      if (rows.has(r) || cols.has(c) || colors.has(state.grid[i])) mask[i] = 1;
+    }
+    state.solution.forEach((c, r) => {
+      if (state.cells[r * N + c] !== FOUND) return;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr >= N || cc < 0 || cc >= N || (dr === 0 && dc === 0)) continue;
+        const i = rr * N + cc;
+        if (!animals.has(i)) mask[i] = 1;
+      }
+    });
+    return mask;
+  }
+
+  // 自动排除（恒开）：把确定安全的格子标成白叉；
+  // 若玩家先前已在这一格手动标过，改记为「自动」，清除标记时就不会把它清掉。
+  function applyAutoExclude() {
+    if (state.gameMode === 'tutorial') return;   // 教学关不自动排除，白叉全部由玩家自己标
+    const mask = excludedMask();
+    for (let i = 0; i < mask.length; i++) {
+      if (!mask[i]) continue;
+      if (state.cells[i] === EMPTY) { state.cells[i] = MARK; state.markSource[i] = SRC_AUTO; }
+      else if (state.cells[i] === MARK && state.markSource[i] === SRC_MANUAL) state.markSource[i] = SRC_AUTO;
+    }
+  }
+
+  function isLit(i) {
+    const f = state.focus;
+    if (!f) return true;
+    const N = state.N, r = Math.floor(i / N), c = i % N;
+    if (f.type === 'row') return r === f.v;
+    if (f.type === 'col') return c === f.v;
+    return state.grid[i] === f.v;
+  }
+
+  /* ---------- 绘制 ---------- */
+  function paint() {
+    const N = state.N, cells = el.board.children;
+    const animals = animalSet();
+    // 教学引导：本步该点哪些格子（脉冲）、哪一整行 / 列要淡淡标出来
+    let tutHl = null, tutBand = null;
+    if (state.gameMode === 'tutorial' && !state.over && !state.tutLock) {
+      const st = TUT_STEPS[tutStepIndex()];
+      if (st) {
+        if (st.hl) { const list = st.hl(); if (list.length) tutHl = new Set(list); }
+        if (st.band) tutBand = new Set(st.band.type === 'col' ? tutCol(st.band.v) : tutRow(st.band.v));
+      }
+    }
+    // 气泡文案与当前步骤保持同步（重开 / 重来都会走到这里）
+    if (state.gameMode === 'tutorial' && state.tutShownStep !== tutStepIndex()) updateTutorialBar();
+    for (let i = 0; i < N * N; i++) {
+      const b = cells[i], s = state.cells[i];
+      let cls = 'cell';
+      let glyph = '';
+      if (s === MARK) { cls += ' marked'; glyph = SVG.whiteX; }
+      else if (s === WRONG) { cls += ' wrong'; glyph = SVG.redX; }
+      else if (s === FOUND) { cls += ' found'; glyph = SVG[state.theme]; }
+      const hf = state.hintFocus;
+      const isTarget = !!hf && i === hf.target;
+      const isEvidence = !!hf && hf.evidence.indexOf(i) >= 0;
+      if (!isLit(i) && s !== FOUND && !isTarget && !isEvidence) cls += ' dim';
+      if (isTarget) cls += ' hint-target';
+      else if (isEvidence) cls += ' hint-evidence';
+      if (i === state.lastPop) cls += ' pop';
+      if (tutBand && tutBand.has(i) && s !== FOUND) cls += ' tut-band';
+      if (tutHl && tutHl.has(i)) cls += ' tut-hl';
+      b.className = cls;
+      const g = b.firstChild;
+      if (g.innerHTML !== glyph) g.innerHTML = glyph;
+    }
+    state.lastPop = -1;
+
+    const rows = foundRows(), cols = foundCols(), colors = foundColors();
+    for (const d of el.rowDots.children) {
+      const v = +d.dataset.v;
+      d.classList.toggle('done', rows.has(v));
+      d.classList.toggle('focused', !!state.focus && state.focus.type === 'row' && state.focus.v === v);
+      d.textContent = rows.has(v) ? '✓' : '●';
+    }
+    for (const d of el.colDots.children) {
+      const v = +d.dataset.v;
+      d.classList.toggle('done', cols.has(v));
+      d.classList.toggle('focused', !!state.focus && state.focus.type === 'col' && state.focus.v === v);
+      d.textContent = cols.has(v) ? '✓' : '●';
+    }
+    for (const chip of el.legend.children) {
+      const v = +chip.dataset.v;
+      chip.classList.toggle('done', colors.has(v));
+      chip.classList.toggle('focused', !!state.focus && state.focus.type === 'color' && state.focus.v === v);
+    }
+
+    el.hearts.innerHTML = '';
+    for (let i = 0; i < state.maxHp; i++) {
+      const span = document.createElement('span');
+      span.innerHTML = SVG.heart;
+      if (i >= state.hp) span.className = 'lost';
+      el.hearts.appendChild(span);
+    }
+    el.found.textContent = state.found;
+    el.hintsLeft.textContent = state.hints;
+    el.hintBtn.disabled = state.hints <= 0 || state.over;
+    checkTutorial();
+  }
+
+  /* ---------- 操作 ---------- */
+  function toggleMark(i) {
+    if (state.over || state.cells[i] === FOUND || state.cells[i] === WRONG) return;
+    startClock();
+    if (state.cells[i] === MARK) { state.cells[i] = EMPTY; state.markSource[i] = SRC_NONE; }
+    else { state.cells[i] = MARK; state.markSource[i] = SRC_MANUAL; }
+    sfx.mark(); paint();
+  }
+
+  // 只清玩家手动标的白叉；凡是落在自动排除范围内的格子（哪怕玩家先标过）一律保留，
+  // 一并改记为「自动」，这样以后再点清除标记也不会在确定的安全格上留下空洞。
+  function clearMarks() {
+    if (state.over) return;
+    // 教学关没有自动排除，白叉全是玩家自己标的，直接清空
+    if (state.gameMode === 'tutorial') {
+      let n0 = 0;
+      for (let i = 0; i < state.cells.length; i++) {
+        if (state.cells[i] !== MARK) continue;
+        state.cells[i] = EMPTY; state.markSource[i] = SRC_NONE; n0++;
+      }
+      if (!n0) return;
+      clearHint(); sfx.mark(); paint();
+      return;
+    }
+    const mask = excludedMask();
+    let n = 0;
+    for (let i = 0; i < state.cells.length; i++) {
+      if (state.cells[i] !== MARK || state.markSource[i] !== SRC_MANUAL) continue;
+      if (mask[i]) { state.markSource[i] = SRC_AUTO; continue; }
+      state.cells[i] = EMPTY; state.markSource[i] = SRC_NONE; n++;
+    }
+    if (!n) return;
+    clearHint();
+    sfx.mark();
+    paint();
+  }
+
+  function reveal(i) {
+    if (state.over || state.cells[i] === FOUND || state.cells[i] === WRONG) return;
+    startClock();
+    state.markSource[i] = SRC_NONE;   // 翻开后不再是白叉，来源信息作废
+    const N = state.N, r = Math.floor(i / N), c = i % N;
+    if (state.solution[r] === c) {
+      state.cells[i] = FOUND;
+      state.found++;
+      state.lastPop = i;
+      sfx.found();
+      applyAutoExclude();
+      paint();
+      if (state.found === N) finish(true);
+    } else {
+      state.cells[i] = WRONG;
+      state.hp--;
+      sfx.wrong();
+      el.app.classList.remove('shake');
+      void el.app.offsetWidth;
+      el.app.classList.add('shake');
+      paint();
+      if (state.hp <= 0) finish(false);
+    }
+  }
+
+  /* ---------- 带推理理由的提示 ----------
+     不复用生成器里的逻辑引擎（那个会一路推到不动点，讲出来的依据玩家在棋盘上
+     根本看不到）。这里只从「玩家此刻能看见的信息」出发找一步可验证的结论，
+     把依据讲清楚；只展示理由，不直接改棋盘，玩家确认后才落子。 */
+  function unitLabel(type, v) {
+    if (type === 0) return '第 ' + (v + 1) + ' 行';
+    if (type === 1) return '第 ' + (v + 1) + ' 列';
+    return (PALETTE[v] ? PALETTE[v].name : '该') + '色区域';
+  }
+  function cellLabel(i) {
+    return '第 ' + (((i / state.N) | 0) + 1) + ' 行第 ' + ((i % state.N) + 1) + ' 列';
+  }
+  /* 提示只讲「玩家此刻在棋盘上看得见、能自己验证」的推理，绝不引用引擎内部
+     推出来、玩家还没看见的结论。四类线索都 sound，且与玩家手标的对错无关：
+       1) hiddenSingle：某单元里只剩一个空格（其余都已被确认排除或已找到）→ 一定是动物
+       2) unitFound：某行 / 列 / 区域已经找到动物 → 其余格不是动物
+       3) adjacent：已找到动物的周围一圈 → 不是动物
+       4) structural：单元 A 里还没被排除的格子全都落在单元 B 内 → B 中 A 之外的格子不是动物
+       5) pairGap：相邻两行的动物列差至少 2 → 某行候选列紧挨着另一行的全部候选时，它一定不是动物
+       6) pairLock：k 个 A 类单元的候选全都落在 k 个 B 类单元内 → B 单元其余格子不是动物
+     注意：玩家「手动」白叉只是猜测，不算已知；只有 WRONG、自动排除（SRC_AUTO）和已翻开的动物才算数。 */
+  function hintExplain(h) {
+    const here = '<b>' + cellLabel(h.i) + '</b>';
+    if (h.rule === 'hiddenSingle') {
+      return here + ' 一定是动物。<br>' + unitLabel(h.unit, h.v) +
+        ' 里，除了这一格，其余格子都已经被确认排除或已经找到 → 只剩这一格可能，可以放心翻开，不会扣血。';
+    }
+    if (h.rule === 'unitFound') {
+      const kind = h.unit === 0 ? '每行' : h.unit === 1 ? '每列' : '每片颜色区域';
+      return here + ' 肯定不是动物。<br>' + unitLabel(h.unit, h.v) + ' 里已经找到动物（<b>' +
+        cellLabel(h.by) + '</b>），而' + kind + '只能有一只 → 这一格可以放心标叉。';
+    }
+    if (h.rule === 'adjacent') {
+      return here + ' 肯定不是动物。<br><b>' + cellLabel(h.by) +
+        '</b> 是你已经翻开的动物，动物周围一圈 8 格都不能再有动物 → 这一格可以放心标叉。';
+    }
+    if (h.rule === 'structural') {
+      return here + ' 肯定不是动物。<br>' + unitLabel(h.from, h.fv) +
+        ' 里还没被排除的格子，<b>全都落在</b> ' + unitLabel(h.to, h.tv) +
+        ' 里（棋盘上直接就能看到）→ ' + unitLabel(h.from, h.fv) + ' 的动物只能落在 ' +
+        unitLabel(h.to, h.tv) + '，而 ' + unitLabel(h.to, h.tv) + ' 也只有一只 → 所以 ' +
+        unitLabel(h.to, h.tv) + ' 的动物一定在 ' + unitLabel(h.from, h.fv) + ' 里，' +
+        unitLabel(h.to, h.tv) + ' 中 ' + unitLabel(h.from, h.fv) +
+        ' 之外的格子都不是动物，这一格可以放心标叉。';
+    }
+    if (h.rule === 'pairGap') {
+      const isRow = h.dir === 0;
+      const line = v => isRow ? '第 ' + (v + 1) + ' 行' : '第 ' + (v + 1) + ' 列';
+      const nums = arr => arr.map(v => v + 1).join('、');
+      return here + ' 肯定不是动物。<br>' + line(h.line) + ' 里还可能放动物的只有第 ' + nums(h.cand) +
+        ' ' + (isRow ? '列' : '行') + '；' + line(h.other) + ' 的候选只有第 ' + nums(h.cand2) + ' ' +
+        (isRow ? '列' : '行') + '。如果动物放在这一格，' + line(h.other) + ' 的动物就必须离它至少 2 ' +
+        (isRow ? '列' : '行') + '（上下左右斜着都不能挨着），可 ' + line(h.other) +
+        ' 的候选全在它旁边 → ' + line(h.other) + ' 就没地方放动物了，矛盾。所以这一格可以放心标叉。';
+    }
+    if (h.rule === 'pairLock') {
+      const namesA = h.fa.map(v => unitLabel(h.from, v)).join('、');
+      const namesB = h.tb.map(v => unitLabel(h.to, v)).join('、');
+      const n = h.fa.length;
+      return here + ' 肯定不是动物。<br>' + namesA + ' 里还没被排除的格子，<b>全都落在</b> ' + namesB +
+        ' 里（棋盘上直接就能看到）→ ' + namesA + ' 各要放一只动物、一共 ' + n + ' 只，所以 ' + namesB +
+        ' 的动物只能是这 ' + n + ' 只，一定落在上面这些候选格上 → ' + namesB +
+        ' 剩下的格子都不是动物，这一格可以放心标叉。';
+    }
+    return '';
+  }
+  function clearHint() {
+    el.hintCard.hidden = true;
+    state.hintFocus = null; state.pendingHint = null; state.hintSeen = [];
+  }
+  function closeHint() { clearHint(); paint(); }
+  function requestHint(newSession) {
+    if (state.over) return false;
+    const fresh = newSession !== false;
+    if (fresh && state.hints <= 0) return false;
+    const N = state.N, L = N * N;
+    const U = PuzzleCore.buildUnits(state.grid, N);
+    const isFound = new Uint8Array(L), isFree = new Uint8Array(L), confirmed = new Uint8Array(L);
+    const found = [];
+    for (let i = 0; i < L; i++) {
+      const s = state.cells[i];
+      if (s === FOUND) { isFound[i] = 1; found.push(i); }
+      else if (s === EMPTY) isFree[i] = 1;
+      else if (s === WRONG || (s === MARK && state.markSource[i] === SRC_AUTO)) confirmed[i] = 1;
+    }
+    const seen = fresh ? new Set() : new Set(state.hintSeen);
+    const pool = [];
+    const add = h => { if (isFree[h.i] && !seen.has(h.i)) pool.push(h); };
+    // 1) 只剩一个空格 → 一定是动物
+    for (const u of U) {
+      if (u.cells.some(i => isFound[i])) continue;         // 该单元已有动物
+      let cand = -1, n = 0, blocked = false;
+      for (const i of u.cells) {
+        if (isFree[i]) { cand = i; n++; }
+        else if (!confirmed[i]) { blocked = true; break; }  // 有玩家手标等未确认格
+      }
+      if (!blocked && n === 1) add({ i: cand, rule: 'hiddenSingle', unit: u.type, v: u.v, evidence: [] });
+    }
+    // 2) 已找到动物所在行 / 列 / 区域
+    for (const u of U) {
+      const by = u.cells.find(i => isFound[i]);
+      if (by === undefined) continue;
+      for (const i of u.cells) if (i !== by) add({ i, rule: 'unitFound', unit: u.type, v: u.v, by, evidence: [by] });
+    }
+    // 3) 已找到动物周围一圈
+    for (const by of found) {
+      const r = (by / N) | 0, c = by % N;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr >= N || cc < 0 || cc >= N) continue;
+        add({ i: rr * N + cc, rule: 'adjacent', by, evidence: [by] });
+      }
+    }
+    // 4) 锁定候选：单元 A 里「还可能放动物」的格子全落在单元 B 内
+    //    → A 的动物必然也就是 B 的动物 → B 中 A 之外的格子不是动物。
+    //    「还可能」取「未被确认排除」的保守超集（连玩家手标的也算），所以结论一定 sound：
+    //    手标只会让 P 变大、更难满足条件，绝不会凭空产生错误结论。
+    //    注意 buildUnits 里的 cells 是 Int16Array，必须先转成普通数组（类型化数组没有 concat）。
+    const openIn = u => Array.from(u.cells).filter(i => !confirmed[i] && !isFound[i]);
+    for (const A of U) {
+      const P = openIn(A);
+      if (!P.length) continue;
+      const setP = new Set(P);
+      for (const B of U) {
+        if (B === A) continue;
+        const setB = new Set(B.cells);
+        if (!P.every(i => setB.has(i))) continue;
+        for (const i of B.cells) if (!setP.has(i)) {
+          add({ i, rule: 'structural', from: A.type, fv: A.v, to: B.type, tv: B.v, evidence: P });
+        }
+      }
+    }
+    // 5) 相邻行 / 列的间隔：相邻两行的动物不可能落在相邻的列（会斜着挨在一起）
+    //    → 如果某一行候选列 c 与另一行所有候选列的距离都 < 2，那 c 一定不是动物。
+    //    这里同样用「未被确认排除」的保守集合，结论 sound 且玩家在棋盘上能直接核对。
+    const rowOpen = r => { const a = []; for (let c = 0; c < N; c++) { const i = r * N + c; if (!confirmed[i] && !isFound[i]) a.push(c); } return a; };
+    const colOpen = c => { const a = []; for (let r = 0; r < N; r++) { const i = r * N + c; if (!confirmed[i] && !isFound[i]) a.push(r); } return a; };
+    for (let r = 0; r + 1 < N; r++) {
+      const S = rowOpen(r), T = rowOpen(r + 1);
+      if (!S.length || !T.length) continue;
+      for (const c of S) if (T.every(t => Math.abs(c - t) < 2)) {
+        add({ i: r * N + c, rule: 'pairGap', dir: 0, line: r, other: r + 1, cand: S, cand2: T, evidence: T.map(t => (r + 1) * N + t) });
+      }
+      for (const c of T) if (S.every(s => Math.abs(c - s) < 2)) {
+        add({ i: (r + 1) * N + c, rule: 'pairGap', dir: 0, line: r + 1, other: r, cand: T, cand2: S, evidence: S.map(s => r * N + s) });
+      }
+    }
+    for (let c = 0; c + 1 < N; c++) {
+      const S = colOpen(c), T = colOpen(c + 1);
+      if (!S.length || !T.length) continue;
+      for (const r of S) if (T.every(t => Math.abs(r - t) < 2)) {
+        add({ i: r * N + c, rule: 'pairGap', dir: 1, line: c, other: c + 1, cand: S, cand2: T, evidence: T.map(t => t * N + c + 1) });
+      }
+      for (const r of T) if (S.every(s => Math.abs(r - s) < 2)) {
+        add({ i: r * N + c + 1, rule: 'pairGap', dir: 1, line: c + 1, other: c, cand: T, cand2: S, evidence: S.map(s => s * N + c) });
+      }
+    }
+    // 6) 单元锁定（k=2 / k=3）：k 个 A 类单元的候选全落在 k 个 B 类单元里
+    //    → 这 k 只动物只能占掉那 k 个 B 单元的动物 → B 单元其余格不是动物。
+    //    只在 A 类单元都还没找到动物时成立，所以先过滤掉已有动物的单元。
+    //    组合数不小，只有前面几条规则一条线索都给不出时才跑。
+    const openCache = new Map();
+    const openOf = u => { let v = openCache.get(u); if (v === undefined) { v = openIn(u); openCache.set(u, v); } return v; };
+    const combos = (arr, k) => {
+      const out = [], cur = [];
+      const go = (start, left) => {
+        if (!left) { out.push(cur.slice()); return; }
+        for (let i = start; i <= arr.length - left; i++) { cur.push(i); go(i + 1, left - 1); cur.pop(); }
+      };
+      go(0, k);
+      return out;
+    };
+    const lockSets = k => {
+      for (let ta = 0; ta < 3; ta++) for (let tb = 0; tb < 3; tb++) {
+        if (ta === tb) continue;                         // 同类型单元互不相交，锁定没有意义
+        const As = U.filter(u => u.type === ta && !u.cells.some(i => isFound[i]));
+        const Bs = U.filter(u => u.type === tb);
+        if (As.length < k || Bs.length < k) continue;
+        const ac = combos(As, k);
+        // B 组合按覆盖格子数从大到小排：PA 比它大就装不下，可以直接结束这轮
+        const bc = combos(Bs, k).map(idx => ({
+          idx, size: idx.reduce((s, j) => s + Bs[j].cells.length, 0)
+        })).sort((x, y) => y.size - x.size);
+        const bSets = new Map();                          // 只在真正需要时建集合
+        const bSetOf = b => {
+          let s = bSets.get(b);
+          if (!s) { s = new Set(); for (const j of b.idx) for (const i of Bs[j].cells) s.add(i); bSets.set(b, s); }
+          return s;
+        };
+        for (const ai of ac) {
+          const PA = [];
+          for (const j of ai) for (const i of openOf(As[j])) PA.push(i);
+          if (!PA.length) continue;
+          const setA = new Set(PA);
+          for (const b of bc) {
+            if (b.size < PA.length) break;
+            const setB = bSetOf(b);
+            let ok = true;
+            for (const i of PA) if (!setB.has(i)) { ok = false; break; }
+            if (!ok) continue;
+            for (const j of b.idx) for (const i of Bs[j].cells) if (!setA.has(i)) {
+              add({ i, rule: 'pairLock', from: ta, fa: ai.map(j => As[j].v), to: tb, tb: b.idx.map(j => Bs[j].v), evidence: PA });
+            }
+          }
+        }
+      }
+    };
+    if (!pool.length) lockSets(2);
+    if (!pool.length) lockSets(3);
+    const uniq = new Map();
+    for (const h of pool) if (!uniq.has(h.i)) uniq.set(h.i, h);   // 保留优先级更高的线索
+    const list = Array.from(uniq.values());
+    el.hintCard.hidden = false;
+    if (!list.length) {
+      el.hintWhere.textContent = '暂时没有直接线索';
+      el.hintWhy.innerHTML = '按你目前已经确定的信息，还看不出必然的下一步。可以先把已找到动物周围、以及它所在的行列区域标掉，或先翻开一只动物再试。';
+      el.hintApply.hidden = true;
+      el.hintLeft.textContent = '剩余 ' + state.hints + ' 次';
+      state.hintFocus = null; state.pendingHint = null;
+      paint();
+      return true;
+    }
+    if (fresh) { state.hints--; state.hintSeen = []; }
+    const pick = list[0];
+    state.hintSeen.push(pick.i);
+    state.pendingHint = pick;
+    state.hintFocus = { target: pick.i, evidence: (pick.evidence || []).filter(x => x !== pick.i) };
+    el.hintWhere.textContent = cellLabel(pick.i);
+    el.hintWhy.innerHTML = hintExplain(pick);
+    el.hintApply.textContent = pick.rule === 'hiddenSingle' ? '放心翻开' : '标上白叉';
+    el.hintApply.hidden = false;
+    el.hintLeft.textContent = '剩余 ' + state.hints + ' 次';
+    sfx.hint();
+    paint();
+    return true;
+  }
+  function applyHint() {
+    const p = state.pendingHint;
+    if (!p || state.over) return;
+    const i = p.i, isAnimal = p.rule === 'hiddenSingle';
+    clearHint();
+    if (isAnimal) { reveal(i); return; }
+    // 提示是经过验证的结论，直接记为「自动」白叉（确认安全），
+    // 后续提示可以把它当作已知条件继续推理，「清除标记」也不会误清。
+    if (state.cells[i] === EMPTY) {
+      state.cells[i] = MARK; state.markSource[i] = SRC_AUTO;
+      sfx.mark(); paint();
+    }
+  }
+  function useHint() { return requestHint(true); }
+
+  function finish(win) {
+    state.over = true;
+    stopClock();
+    const secs = elapsed();
+    const time = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+    const miss = state.maxHp - state.hp;
+    const stars = win ? (miss === 0 ? 3 : miss <= 2 ? 2 : 1) : 0;
+    const camp = state.gameMode === 'campaign';
+    const tut = state.gameMode === 'tutorial';
+    const passed = Math.max(1, state.activeLevel || progress.level || 1);   // 弹窗始终说「刚打的这一关」，从 1 起
+    // 闯关通关立刻推进并落盘，关掉页面也不丢进度。
+    // 只有「棋盘正对应进度所指的那一关」才计数：重玩本关、换一题、重复触发胜利都不会跳关。
+    if (win && camp && !state.winCounted && state.activeLevel === progress.level) {
+      state.winCounted = true;
+      progress.cleared++;
+      progress.level++;
+      progress.best = Math.max(progress.best, progress.level);
+      saveProgress();
+      updateModeUI();
+    }
+    if (win) sfx.win(); else sfx.lose();
+    if (!win) {
+      // 揭晓答案
+      const N = state.N;
+      state.solution.forEach((c, r) => {
+        const i = r * N + c;
+        if (state.cells[i] !== FOUND) { state.cells[i] = FOUND; state.markSource[i] = SRC_NONE; }
+      });
+      paint();
+    }
+    const title = win
+      ? (camp ? '第 ' + passed + ' 关通过！' : tut ? '教学完成！' : '全部找到啦！')
+      : (camp ? '第 ' + passed + ' 关挑战失败' : tut ? '这一课再试一次' : '爱心用完了');
+    const sub = win
+      ? (camp ? '继续向前，下一关是第 ' + (passed + 1) + ' 关'
+        : tut ? '你已经学会翻开、标记，以及按区域和行列排除的完整推理，去闯关实战吧！'
+          : '逻辑满分，这一关被你拿下了')
+      : '别灰心，答案已经揭晓';
+    const againText = camp ? (win ? '进入第 ' + (passed + 1) + ' 关' : '重试本关')
+      : tut ? (win ? '返回主界面' : '重试本课')
+        : (win ? '再来一关' : '重新挑战');
+    el.modal.innerHTML =
+      '<div class="micon">' + (win ? SVG[state.theme] : SVG.heart) + '</div>' +
+      '<h2>' + title + '</h2>' +
+      (win && !tut ? '<div class="stars">' + '★'.repeat(stars) + '☆'.repeat(3 - stars) + '</div>' : '') +
+      '<p>' + sub + '<br>用时 <b>' + time + '</b> · 剩余 <b>' + state.hp + '</b> 颗心 · 找到 <b>' + state.found + '/' + state.N + '</b></p>' +
+      '<button class="btn primary" id="againBtn">' + againText + '</button>' +
+      (camp
+        ? '<button class="btn" id="modeBackBtn" style="margin-top:8px">返回主界面</button>'
+        : tut ? ''
+          : '<button class="btn" id="sameBtn" style="margin-top:8px">重玩本关</button>');
+    el.overlay.classList.add('show');
+    $('againBtn').onclick = () => {
+      if (tut) { if (win) showModeScreen(); else restartSame(); return; }   // 教学通关后回主界面
+      if (!camp) { requestPuzzle(state.N); return; }
+      if (win) startLevel(progress.level); else restartSame();
+    };
+    if ($('sameBtn')) $('sameBtn').onclick = () => restartSame();
+    if ($('modeBackBtn')) $('modeBackBtn').onclick = showModeScreen;
+    paint();
+  }
+
+  function restartSame() {
+    clearHint();
+    state.cells = new Array(state.N * state.N).fill(EMPTY);
+    state.markSource = new Uint8Array(state.N * state.N);
+    state.hp = state.maxHp; state.found = 0;
+    state.hints = state.gameMode === 'tutorial' ? TUTORIAL_HINTS : MAX_HINTS;
+    if (state.gameMode === 'tutorial') { state.tutorialStep = 0; state.tutLock = false; }   // 教学重来从头教
+    state.over = false; state.started = false; state.startAt = 0; state.focus = null;
+    stopClock(); el.clock.textContent = '00:00';
+    el.overlay.classList.remove('show');
+    paint();
+  }
+
+  /* ---------- 事件 ---------- */
+  /* 按住拖动 = 标记画笔（鼠标 / 触屏 / 触控笔统一走 Pointer Events） */
+  function brushCell(i, value) {
+    if (state.over || i < 0 || i >= state.cells.length) return false;
+    const s = state.cells[i];
+    if (s === FOUND || s === WRONG || s === value) return false;
+    state.cells[i] = value;
+    state.markSource[i] = value === MARK ? SRC_MANUAL : SRC_NONE;
+    return true;
+  }
+  function cellAt(x, y) {
+    const t = document.elementFromPoint(x, y);
+    const b = t && t.closest ? t.closest('.cell') : null;
+    return b && el.board.contains(b) ? +b.dataset.i : -1;
+  }
+  // 沿移动线段插值采样，手指快速划过也不会漏掉中间的格子
+  function sweepTo(x, y) {
+    const d = drag;
+    const dist = Math.hypot(x - d.x, y - d.y);
+    const steps = Math.max(1, Math.min(160, Math.ceil(dist / d.step)));
+    let changed = false;
+    for (let k = 1; k <= steps; k++) {
+      const px = d.x + (x - d.x) * k / steps;
+      const py = d.y + (y - d.y) * k / steps;
+      const i = cellAt(px, py);
+      if (i >= 0 && i !== d.last) {
+        d.last = i;
+        if (brushCell(i, d.value)) changed = true;
+      }
+    }
+    d.x = x; d.y = y;
+    return changed;
+  }
+  function cancelDrag() {
+    if (drag && drag.active) el.board.classList.remove('dragging');
+    drag = null;
+  }
+  el.board.addEventListener('pointerdown', e => {
+    if (drag || e.button !== 0 || state.over) return;
+    const b = e.target.closest('.cell');
+    if (!b) return;
+    const rect = b.getBoundingClientRect();
+    drag = {
+      id: e.pointerId, active: false,
+      startI: +b.dataset.i, startX: e.clientX, startY: e.clientY,
+      x: e.clientX, y: e.clientY, last: -1,
+      value: MARK, step: Math.max(5, rect.width * 0.34), lastSfx: 0
+    };
+  });
+  window.addEventListener('pointermove', e => {
+    const d = drag;
+    if (!d || e.pointerId !== d.id) return;
+    if (!d.active) {
+      if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 7) return;  // 手抖仍算单击
+      d.active = true;
+      d.value = state.cells[d.startI] === MARK ? EMPTY : MARK;                  // 起点决定标记 / 擦除
+      d.last = d.startI;
+      clearTimeout(state.clickTimer); state.clickTimer = null;
+      el.board.classList.add('dragging');
+      startClock();
+      if (brushCell(d.startI, d.value)) sfx.mark();
+      paint();
+    }
+    if (sweepTo(e.clientX, e.clientY)) {
+      const now = performance.now();
+      if (now - d.lastSfx > 70) { sfx.mark(); d.lastSfx = now; }
+      paint();
+    }
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.active) {
+      // 拖动结束后浏览器会补发 click（甚至 dblclick），吞掉它们避免又改一次格子
+      suppressClickUntil = performance.now() + 400;
+      el.board.classList.remove('dragging');
+    }
+    drag = null;
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+
+  el.board.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) return;
+    const b = e.target.closest('.cell');
+    if (!b) return;
+    const i = +b.dataset.i;
+    clearTimeout(state.clickTimer);
+    state.clickTimer = setTimeout(() => { state.clickTimer = null; toggleMark(i); }, 240);
+  });
+  el.board.addEventListener('dblclick', e => {
+    if (performance.now() < suppressClickUntil) return;
+    const b = e.target.closest('.cell');
+    if (!b) return;
+    clearTimeout(state.clickTimer); state.clickTimer = null;
+    reveal(+b.dataset.i);
+  });
+
+  function setFocus(type, v) {
+    if (state.focus && state.focus.type === type && state.focus.v === v) state.focus = null;
+    else state.focus = { type, v };
+    paint();
+  }
+  [el.colDots, el.rowDots, el.legend].forEach(container => {
+    container.addEventListener('click', e => {
+      const b = e.target.closest('[data-type]');
+      if (b) setFocus(b.dataset.type, +b.dataset.v);
+    });
+  });
+
+  el.levelSeg.innerHTML = LEVELS.map(n =>
+    '<button data-n="' + n + '"' + (n === state.practiceN ? ' class="active"' : '') + '>' + n + '×' + n + '</button>').join('');
+  el.levelSeg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = +b.dataset.n;
+    state.practiceN = n;
+    for (const x of el.levelSeg.children) x.classList.toggle('active', x === b);
+    requestPuzzle(n);
+  });
+  /* 启动模式选择：点卡片（或键盘 Enter / 空格）进入；「返回主界面」随时回来 */
+  el.modeScreen.addEventListener('click', e => {
+    const card = e.target.closest('.mode-card');
+    if (card) switchMode(card.dataset.gamemode);
+  });
+  el.modeScreen.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest && e.target.closest('.mode-card');
+    if (card) { e.preventDefault(); switchMode(card.dataset.gamemode); }
+  });
+  el.homeBtn.addEventListener('click', showModeScreen);
+  // 重置进度要二次确认，避免误点把闯关记录清掉
+  let resetArmed = 0, resetTimer = 0;
+  el.resetProgressBtn.addEventListener('click', () => {
+    clearTimeout(resetTimer);
+    if (resetArmed) {
+      resetArmed = 0;
+      el.resetProgressBtn.textContent = '重置闯关进度';
+      resetProgress();
+      return;
+    }
+    resetArmed = 1;
+    el.resetProgressBtn.textContent = '确定重置？再点一次';
+    resetTimer = setTimeout(() => {
+      resetArmed = 0;
+      el.resetProgressBtn.textContent = '重置闯关进度';
+    }, 3000);
+  });
+
+  el.clearMarksBtn.addEventListener('click', clearMarks);
+  el.rulesBtn.addEventListener('click', () => {
+    const hidden = el.rulesPanel.style.display === 'none';
+    el.rulesPanel.style.display = hidden ? '' : 'none';
+    el.rulesBtn.style.background = hidden ? '' : 'var(--accent-soft)';
+  });
+  el.soundBtn.addEventListener('click', () => {
+    state.sound = !state.sound;
+    updateSoundBtn();
+    if (state.sound) sfx.mark();
+  });
+  function updateSoundBtn() {
+    el.soundBtn.innerHTML = state.sound ? SVG.soundOn : SVG.soundOff;
+    el.soundBtn.classList.toggle('off', !state.sound);
+  }
+
+  el.hintBtn.addEventListener('click', () => requestHint(true));
+  el.hintApply.addEventListener('click', applyHint);
+  el.hintNext.addEventListener('click', () => requestHint(false));
+  el.hintClose.addEventListener('click', closeHint);
+  el.restartBtn.addEventListener('click', restartSame);
+  el.newBtn.addEventListener('click', () => {
+    if (state.gameMode === 'tutorial') { startTutorial(0); return; }   // 教学：从头再来
+    requestPuzzle(state.N);
+  });
+  el.tutSkip.addEventListener('click', showModeScreen);
+  el.overlay.addEventListener('click', e => { if (e.target === el.overlay) el.overlay.classList.remove('show'); });
+  document.addEventListener('keydown', e => {
+    if (!el.modeScreen.hidden) return;   // 模式选择界面下不响应棋盘快捷键
+    if (e.key === 'r' || e.key === 'R') restartSame();
+    if (e.key === 'Escape') { state.focus = null; paint(); }
+  });
+
+  // 供自动化测试使用
+  window.__game = {
+    state, buildPuzzle, requestPuzzle, reveal, toggleMark, clearMarks, applyAutoExclude,
+    useHint, requestHint, applyHint, closeHint, finish, brushCell,
+    levelSize, startLevel, switchMode, showModeScreen, resetProgress,
+    startTutorial, skipTutorial, checkTutorial, TUT_STEPS, TUT_PUZZLE,
+    get tutSteps() { return TUT_STEPS; },
+    get tutMsg() { return el.tutMsg.textContent; },
+    get tutHighlight() {
+      const st = TUT_STEPS[Math.min(state.tutorialStep, TUT_STEPS.length - 1)];
+      return st && st.hl ? st.hl() : [];
+    },
+    get gameMode() { return state.gameMode; },
+    get tutorialStep() { return state.tutorialStep; },
+    get tutorialBarVisible() { return !el.tutorialBar.hidden; },
+    get theme() { return state.theme; },
+    get activeLevel() { return state.activeLevel; },
+    get progress() { return { level: progress.level, best: progress.best, cleared: progress.cleared }; },
+    get modeScreenVisible() { return !el.modeScreen.hidden; },
+    get workerActive() { return !!genWorker; },
+    get dragActive() { return !!(drag && drag.active); },
+    get hintText() { return el.hintWhy.textContent; },
+    get hintTarget() { return state.pendingHint ? state.pendingHint.i : -1; },
+    verify() {
+      const N = state.N;
+      const sols = PuzzleCore.solveAll(state.grid, N, 5);
+      return { unique: sols.length === 1, correct: sols.length === 1 && sols[0].every((c, r) => c === state.solution[r]), sols };
+    }
+  };
+
+  el.modeLogo.innerHTML = SVG.cow;   // 主界面固定品牌图标；关卡内的 logo 由 rollTheme 决定
+  updateSoundBtn();
+  // 手机上先把规则长文收起来，让棋盘和按钮一屏放得下（点右上角「?」随时展开）
+  if (window.matchMedia('(max-width:560px)').matches) {
+    el.rulesPanel.style.display = 'none';
+    el.rulesBtn.style.background = 'var(--accent-soft)';
+  }
+  buildPuzzle(state.N);      // 先备好一局（同时随机本关主题），模式卡片后面点进来时再按模式重开
+  showModeScreen();          // 启动先显示独立的主界面
+})();
+</script>
+</body>
+</html>
